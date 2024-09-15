@@ -13,6 +13,7 @@ clap = { version = "4.5.17", features = ["derive"] }
 glob = "0.3.1"
 liquid = "0.26.9"
 pulldown-cmark = "0.12.1"
+regex = "1.10.6"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 tap = "1.0.1"

@@ -381,6 +381,7 @@ dependencies = [
  "glob",
  "liquid",
  "pulldown-cmark",
+ "regex",
  "serde",
  "serde_json",
  "tap",
