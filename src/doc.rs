@@ -70,7 +70,7 @@ impl Doc {
         write_file_deep(write_path, &self.content)
     }
 
-    pub fn update_meta(&mut self, patch: HashMap<String, String>) {
+    pub fn extend_meta(&mut self, patch: HashMap<String, String>) {
         self.meta.extend(patch);
     }
 
