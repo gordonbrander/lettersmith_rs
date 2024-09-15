@@ -5,6 +5,7 @@ pub mod docs;
 pub mod io;
 pub mod json;
 pub mod markdown;
+pub mod stub;
 pub use tap::pipe;
 
 #[cfg(test)]
