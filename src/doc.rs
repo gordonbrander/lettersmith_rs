@@ -70,6 +70,41 @@ impl Doc {
         write_file_deep(write_path, &self.content)
     }
 
+    pub fn set_output_path(mut self, output_path: impl AsRef<Path>) -> Self {
+        self.output_path = output_path.as_ref().to_path_buf();
+        self
+    }
+
+    pub fn set_created(mut self, created: DateTime<Utc>) -> Self {
+        self.created = created;
+        self
+    }
+
+    pub fn set_modified(mut self, modified: DateTime<Utc>) -> Self {
+        self.modified = modified;
+        self
+    }
+
+    pub fn set_title(mut self, title: impl Into<String>) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    pub fn set_content(mut self, content: impl Into<String>) -> Self {
+        self.content = content.into();
+        self
+    }
+
+    pub fn set_template(mut self, template: impl Into<String>) -> Self {
+        self.template = template.into();
+        self
+    }
+
+    pub fn set_meta(mut self, meta: json::Value) -> Self {
+        self.meta = meta;
+        self
+    }
+
     /// Merge new meta into existing meta
     pub fn merge_meta(mut self, patch: json::Value) -> Self {
         merge(&mut self.meta, patch);

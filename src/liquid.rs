@@ -15,7 +15,7 @@ impl Doc {
         obj
     }
 
-    pub fn render_liquid(&self) -> Result<String> {
+    pub fn render_liquid(self) -> Result<Doc> {
         let parser = match liquid::ParserBuilder::with_stdlib().build() {
             Ok(parser) => parser,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
@@ -29,9 +29,11 @@ impl Doc {
         let mut globals = liquid::Object::new();
         globals.insert("doc".into(), LiquidValue::Object(self.to_liquid()));
 
-        match template.render(&globals) {
-            Ok(rendered) => Ok(rendered),
-            Err(err) => Err(Error::new(std::io::ErrorKind::Other, err)),
-        }
+        let content = match template.render(&globals) {
+            Ok(rendered) => rendered,
+            Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+        };
+
+        Ok(self.set_content(content).set_extension_html())
     }
 }
