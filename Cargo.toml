@@ -9,7 +9,9 @@ path = "src/bin/ls_load.rs"
 
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }
+clap = { version = "4.5.17", features = ["derive"] }
 glob = "0.3.1"
+liquid = "0.26.9"
 pulldown-cmark = "0.12.1"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
