@@ -1,0 +1,16 @@
+[package]
+name = "lettersmith"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ls_load"
+path = "src/bin/ls_load.rs"
+
+[dependencies]
+chrono = { version = "0.4.38", features = ["serde"] }
+pipe-trait = "0.4.0"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+tempfile = "3.12.0"
+toml = "0.8.19"
