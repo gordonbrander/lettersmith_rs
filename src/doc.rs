@@ -1,7 +1,7 @@
 use crate::io::write_file_deep;
+use crate::json::{self, merge};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use toml;
@@ -15,7 +15,7 @@ pub struct Doc {
     pub modified: DateTime<Utc>,
     pub title: String,
     pub content: String,
-    pub meta: HashMap<String, String>,
+    pub meta: json::Value,
     pub template: String,
 }
 
@@ -28,7 +28,7 @@ impl Doc {
         modified: DateTime<Utc>,
         title: impl Into<String>,
         content: impl Into<String>,
-        meta: HashMap<String, String>,
+        meta: json::Value,
         template: impl Into<String>,
     ) -> Self {
         Doc {
@@ -59,7 +59,7 @@ impl Doc {
             metadata.modified()?.into(),
             title,
             content,
-            HashMap::new(),
+            serde_json::Value::Null,
             String::new(),
         ))
     }
@@ -70,8 +70,10 @@ impl Doc {
         write_file_deep(write_path, &self.content)
     }
 
-    pub fn extend_meta(&mut self, patch: HashMap<String, String>) {
-        self.meta.extend(patch);
+    /// Merge new meta into existing meta
+    pub fn merge_meta(mut self, patch: json::Value) -> Self {
+        merge(&mut self.meta, patch);
+        self
     }
 
     /// Set output path extension.
@@ -110,30 +112,36 @@ impl Doc {
         self
     }
 
-    pub fn uplift_meta(&mut self) {
-        if let Some(title) = self.meta.get("title") {
+    pub fn uplift_meta(mut self) -> Self {
+        if let Some(json::Value::String(title)) = self.meta.get("title") {
             self.title = title.clone();
         }
-        if let Some(created) = self.meta.get("created").and_then(|s| s.parse().ok()) {
-            self.created = created;
+        if let Some(json::Value::String(created)) = self.meta.get("created") {
+            if let Ok(created) = created.parse() {
+                self.created = created;
+            }
         }
-        if let Some(modified) = self.meta.get("modified").and_then(|s| s.parse().ok()) {
-            self.modified = modified;
+        if let Some(json::Value::String(modified)) = self.meta.get("modified") {
+            if let Ok(modified) = modified.parse() {
+                self.modified = modified;
+            }
         }
-        if let Some(permalink) = self.meta.get("permalink") {
+        if let Some(json::Value::String(permalink)) = self.meta.get("permalink") {
             self.output_path = PathBuf::from(permalink);
         }
-        if let Some(template) = self.meta.get("template") {
+        if let Some(json::Value::String(template)) = self.meta.get("template") {
             self.template = template.clone();
         }
+        self
     }
 
-    pub fn parse_frontmatter(&mut self) {
+    pub fn parse_frontmatter(mut self) -> Self {
         if let Some((frontmatter, content)) = self.content.split_once("---\n") {
             if let Ok(meta) = toml::from_str(frontmatter) {
                 self.meta = meta;
                 self.content = content.to_string();
             }
         }
+        self
     }
 }

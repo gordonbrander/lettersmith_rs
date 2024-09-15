@@ -63,14 +63,43 @@ pub fn sort_by_created(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = 
 
 /// Sort docs by modified date
 pub fn sort_by_modified(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
-    let mut docs_vec: Vec<Doc> = docs.into_iter().collect();
+    let mut docs_vec: Vec<Doc> = docs.collect();
     docs_vec.sort_by(|a, b| b.modified.cmp(&a.modified));
     docs_vec.into_iter()
 }
 
 /// Sort docs by title (A-Z)
 pub fn sort_by_title(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
-    let mut docs_vec: Vec<Doc> = docs.into_iter().collect();
+    let mut docs_vec: Vec<Doc> = docs.collect();
     docs_vec.sort_by(|a, b| a.title.cmp(&b.title));
     docs_vec.into_iter()
+}
+
+/// Get most recent n docs
+pub fn most_recent(docs: impl Iterator<Item = Doc>, n: usize) -> impl Iterator<Item = Doc> {
+    sort_by_created(docs).take(n)
+}
+
+pub fn autotemplate(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
+    docs.map(|doc| doc.autotemplate())
+}
+
+pub fn set_extension(
+    docs: impl Iterator<Item = Doc>,
+    extension: impl Into<String>,
+) -> impl Iterator<Item = Doc> {
+    let ext: String = extension.into();
+    docs.map(move |doc| doc.set_extension(&ext))
+}
+
+pub fn set_extension_html(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
+    docs.map(|doc| doc.set_extension_html())
+}
+
+pub fn with_template(
+    docs: impl Iterator<Item = Doc>,
+    template: impl Into<String>,
+) -> impl Iterator<Item = Doc> {
+    let template: String = template.into();
+    docs.map(move |doc| doc.with_template(&template))
 }
