@@ -1,4 +1,5 @@
 use crate::doc::Doc;
+use crate::text::truncate_280;
 use chrono::{DateTime, Utc};
 use std::path::PathBuf;
 
@@ -18,18 +19,19 @@ pub struct Stub {
 
 impl From<&Doc> for Stub {
     fn from(doc: &Doc) -> Self {
+        let summary = if let Some(str) = doc.meta.get("summary").and_then(|v| v.as_str()) {
+            str.to_string()
+        } else {
+            truncate_280(&doc.content)
+        };
+
         Stub {
             id_path: doc.id_path.clone(),
             output_path: doc.output_path.clone(),
             created: doc.created,
             modified: doc.modified,
             title: doc.title.clone(),
-            summary: doc
-                .meta
-                .get("summary")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
+            summary,
         }
     }
 }
