@@ -23,7 +23,6 @@ pub fn merge(a: &mut Value, b: Value) {
                     merge(a.entry(k).or_insert(Value::Null), v);
                 }
             }
-
             return;
         }
     }
