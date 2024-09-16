@@ -1,9 +1,6 @@
-use crate::doc::Doc;
-use serde_json;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
-use std::io::{self, BufRead};
 use std::path::Path;
 
 /// Filter out errors and log them to stderr.
@@ -21,55 +18,6 @@ where
             None
         }
     })
-}
-
-/// Parse JSON documents from stdin as line-separated JSON.
-/// Returns an iterator of doc results.
-pub fn read_stdin() -> impl Iterator<Item = Result<Doc, impl Error>> {
-    io::stdin()
-        .lock()
-        .lines()
-        .filter_map(Result::ok)
-        .map(|line| serde_json::from_str(&line))
-}
-
-/// Load documents from an iterator of paths.
-/// Errors are output to stderr.
-/// Returns an iterator of docs.
-pub fn read_docs<P, I>(paths: I) -> impl Iterator<Item = Result<Doc, impl Error>>
-where
-    P: AsRef<Path>,
-    I: IntoIterator<Item = P>,
-{
-    paths.into_iter().map(|path| Doc::load(path))
-}
-
-/// Write documents to stdout as line-separated JSON.
-/// Any errors are output to stderr.
-pub fn write_stdio(docs: impl IntoIterator<Item = Doc>) {
-    for doc in docs {
-        let serialized = serde_json::to_string(&doc);
-        match serialized {
-            Ok(json) => {
-                println!("{}", json);
-            }
-            Err(err) => {
-                eprintln!("Error serializing doc: {}", err);
-            }
-        }
-    }
-}
-
-/// Write docs to the output directory.
-/// Logs successful writes to stdout.
-/// Logs errors to stderr.
-pub fn write_docs(docs: impl IntoIterator<Item = Doc>, output_dir: &Path) {
-    for doc in docs {
-        match doc.write(output_dir) {
-            Ok(_) => println!("Wrote {:?} to {:?}", doc.id_path, doc.output_path),
-            Err(err) => eprintln!("Error writing doc: {}", err),
-        }
-    }
 }
 
 /// Write content to a file, creating directories if necessary.

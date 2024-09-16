@@ -1,5 +1,5 @@
 use crate::doc::Doc;
-use liquid::model;
+pub use liquid::model;
 use std::io::{Error, Result};
 
 /// Implement From for Doc -> liquid::Object.

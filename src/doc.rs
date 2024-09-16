@@ -45,7 +45,7 @@ impl Doc {
     }
 
     /// Load a document from a file path.
-    pub fn load(path: impl AsRef<Path>) -> std::io::Result<Self> {
+    pub fn read(path: impl AsRef<Path>) -> std::io::Result<Self> {
         let path = path.as_ref();
         let metadata = std::fs::metadata(path)?;
         let content = std::fs::read_to_string(path)?;
