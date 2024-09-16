@@ -1,21 +1,24 @@
 use crate::doc::Doc;
-use liquid::model::Value as LiquidValue;
+use liquid::model;
 use std::io::{Error, Result};
 
-impl Doc {
-    pub fn to_liquid(&self) -> liquid::Object {
-        let obj = liquid::object!({
-            "id_path": self.id_path,
-            "created": self.created,
-            "modified": self.modified,
-            "title": self.title,
-            "content": self.content,
-            "meta": self.meta.clone(),
-        });
-        obj
+/// Implement From for Doc -> liquid::Object.
+impl From<&Doc> for model::Object {
+    fn from(doc: &Doc) -> Self {
+        liquid::object!({
+            "id_path": doc.id_path,
+            "created": doc.created,
+            "modified": doc.modified,
+            "title": doc.title,
+            "content": doc.content,
+            "meta": doc.meta.clone(),
+        })
     }
+}
 
-    pub fn render_liquid(self) -> Result<Doc> {
+impl Doc {
+    /// Render the liquid template with the given data object.
+    pub fn render_liquid(self, data: model::Object) -> Result<Doc> {
         let parser = match liquid::ParserBuilder::with_stdlib().build() {
             Ok(parser) => parser,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
@@ -26,8 +29,12 @@ impl Doc {
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
 
-        let mut globals = liquid::Object::new();
-        globals.insert("doc".into(), LiquidValue::Object(self.to_liquid()));
+        let mut globals = model::Object::new();
+        globals.insert("data".into(), model::Value::Object(data));
+        globals.insert(
+            "doc".into(),
+            model::Value::Object(model::Object::from(&self)),
+        );
 
         let content = match template.render(&globals) {
             Ok(rendered) => rendered,
