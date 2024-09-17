@@ -1,7 +1,6 @@
 pub use tap::pipe;
 pub mod absolutize;
 pub mod cli;
-pub mod config;
 pub mod doc;
 pub mod docs;
 pub mod io;

@@ -1,4 +1,6 @@
-use clap::Parser;
+use crate::json;
+pub use clap::Parser;
+use std::io::Result;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -11,6 +13,12 @@ pub struct Cli {
     /// Input files to process
     #[clap(value_parser)]
     pub files: Vec<PathBuf>,
+}
+
+impl Cli {
+    pub fn read_config(&self) -> Result<json::Value> {
+        json::read(&self.config)
+    }
 }
 
 pub fn parse_args() -> Cli {
