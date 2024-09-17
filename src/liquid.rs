@@ -1,4 +1,5 @@
 use crate::doc::Doc;
+use crate::json;
 pub use liquid::model;
 use std::io::{Error, Result};
 
@@ -16,9 +17,31 @@ impl From<&Doc> for model::Object {
     }
 }
 
+pub fn json_to_liquid(value: &json::Value) -> liquid::model::Value {
+    match value {
+        json::Value::Null => model::Value::Nil,
+        json::Value::Bool(b) => model::Value::scalar(*b),
+        json::Value::Number(n) => {
+            if n.is_i64() {
+                model::Value::scalar(n.as_i64().unwrap())
+            } else {
+                model::Value::scalar(n.as_f64().unwrap())
+            }
+        }
+        json::Value::String(s) => model::Value::scalar(s.clone()),
+        json::Value::Array(a) => model::Value::Array(a.iter().map(|v| json_to_liquid(v)).collect()),
+        json::Value::Object(o) => {
+            model::Value::Object(o.iter().fold(model::Object::new(), |mut acc, (k, v)| {
+                acc.insert(k.into(), json_to_liquid(v));
+                acc
+            }))
+        }
+    }
+}
+
 impl Doc {
     /// Render the liquid template with the given data object.
-    pub fn render_liquid(self, data: model::Object) -> Result<Doc> {
+    pub fn render_liquid(self, data: json::Value) -> Result<Doc> {
         let parser = match liquid::ParserBuilder::with_stdlib().build() {
             Ok(parser) => parser,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
@@ -30,7 +53,7 @@ impl Doc {
         };
 
         let mut globals = model::Object::new();
-        globals.insert("data".into(), model::Value::Object(data));
+        globals.insert("data".into(), json_to_liquid(&data));
         globals.insert(
             "doc".into(),
             model::Value::Object(model::Object::from(&self)),
