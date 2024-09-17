@@ -41,17 +41,20 @@ pub fn json_to_liquid(value: &json::Value) -> liquid::model::Value {
 
 impl Doc {
     /// Render the liquid template with the given data object.
-    pub fn render_liquid(self, data: json::Value) -> Result<Doc> {
+    pub fn render_liquid(self, data: &json::Value) -> Result<Doc> {
+        // Construct the parser
         let parser = match liquid::ParserBuilder::with_stdlib().build() {
             Ok(parser) => parser,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
 
+        // Parse the template
         let template = match parser.parse(&self.template) {
             Ok(template) => template,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
 
+        // Set up the template data
         let mut globals = model::Object::new();
         globals.insert("data".into(), json_to_liquid(&data));
         globals.insert(
@@ -59,11 +62,20 @@ impl Doc {
             model::Value::Object(model::Object::from(&self)),
         );
 
+        // Render the template
         let content = match template.render(&globals) {
             Ok(rendered) => rendered,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
 
+        // Set content and return
         Ok(self.set_content(content).set_extension_html())
     }
+}
+
+pub fn render_liquid(
+    docs: impl Iterator<Item = Doc>,
+    data: json::Value,
+) -> impl Iterator<Item = Result<Doc>> {
+    docs.map(move |doc| doc.render_liquid(&data))
 }
