@@ -8,8 +8,10 @@ pub mod io;
 pub mod json;
 pub mod liquid;
 pub mod markdown;
+pub mod permalink;
 pub mod stub;
 pub mod text;
+pub mod token_template;
 
 #[cfg(test)]
 mod tests {
