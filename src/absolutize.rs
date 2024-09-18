@@ -27,7 +27,7 @@ impl Doc {
     /// Absolutize URLs in the content of this document.
     pub fn absolutize_urls(self, base_url: &str) -> Self {
         let content = absolutize_urls_in_html(&self.content, base_url);
-        self.set_content(content)
+        self.set_content(&content)
     }
 }
 

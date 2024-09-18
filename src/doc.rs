@@ -94,14 +94,14 @@ impl Doc {
         self
     }
 
-    pub fn set_template(mut self, template: &str) -> Self {
-        self.template = template.to_owned();
+    pub fn set_template(mut self, template: impl Into<String>) -> Self {
+        self.template = template.into();
         self
     }
 
-    pub fn set_template_if_needed(mut self, template: &str) -> Self {
+    pub fn set_template_if_needed(mut self, template: impl Into<String>) -> Self {
         if self.template.is_empty() {
-            self.template = template.to_owned();
+            self.template = template.into();
         }
         self
     }

@@ -146,16 +146,18 @@ pub fn set_extension_html(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item
     docs.map(|doc| doc.set_extension_html())
 }
 
-pub fn set_template<'a>(
-    docs: impl Iterator<Item = Doc> + 'a,
-    template: &'a str,
-) -> impl Iterator<Item = Doc> + 'a {
-    docs.map(move |doc| doc.set_template(&template))
+pub fn set_template(
+    docs: impl Iterator<Item = Doc>,
+    template: impl Into<String>,
+) -> impl Iterator<Item = Doc> {
+    let template_string = template.into();
+    docs.map(move |doc| doc.set_template(template_string.clone()))
 }
 
-pub fn set_template_if_needed<'a>(
-    docs: impl Iterator<Item = Doc> + 'a,
-    template: &'a str,
-) -> impl Iterator<Item = Doc> + 'a {
-    docs.map(move |doc| doc.set_template_if_needed(template))
+pub fn set_template_if_needed(
+    docs: impl Iterator<Item = Doc>,
+    template: impl Into<String>,
+) -> impl Iterator<Item = Doc> {
+    let template_string = template.into();
+    docs.map(move |doc| doc.set_template_if_needed(template_string.clone()))
 }
