@@ -2,7 +2,6 @@ use crate::io::write_file_deep;
 use crate::json::{self, merge};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use toml;
 
@@ -95,8 +94,15 @@ impl Doc {
         self
     }
 
-    pub fn set_template(mut self, template: impl Into<String>) -> Self {
-        self.template = template.into();
+    pub fn set_template(mut self, template: &str) -> Self {
+        self.template = template.to_owned();
+        self
+    }
+
+    pub fn set_template_if_needed(mut self, template: &str) -> Self {
+        if self.template.is_empty() {
+            self.template = template.to_owned();
+        }
         self
     }
 
@@ -112,7 +118,7 @@ impl Doc {
     }
 
     /// Set output path extension.
-    pub fn set_extension<S: AsRef<OsStr>>(mut self, extension: S) -> Self {
+    pub fn set_extension(mut self, extension: &str) -> Self {
         self.output_path.set_extension(extension);
         self
     }
@@ -136,13 +142,6 @@ impl Doc {
                 .map(|name| format!("{}.html", name))
                 .unwrap_or_else(|| "default.html".to_string());
             self.template = template;
-        }
-        self
-    }
-
-    pub fn with_template(mut self, template: impl Into<String>) -> Self {
-        if self.template.is_empty() {
-            self.template = template.into();
         }
         self
     }

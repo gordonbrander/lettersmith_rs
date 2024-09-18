@@ -135,22 +135,27 @@ pub fn autotemplate(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc
     docs.map(|doc| doc.autotemplate())
 }
 
-pub fn set_extension(
-    docs: impl Iterator<Item = Doc>,
-    extension: impl Into<String>,
-) -> impl Iterator<Item = Doc> {
-    let ext: String = extension.into();
-    docs.map(move |doc| doc.set_extension(&ext))
+pub fn set_extension<'a>(
+    docs: impl Iterator<Item = Doc> + 'a,
+    extension: &'a str,
+) -> impl Iterator<Item = Doc> + 'a {
+    docs.map(move |doc| doc.set_extension(&extension))
 }
 
 pub fn set_extension_html(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
     docs.map(|doc| doc.set_extension_html())
 }
 
-pub fn with_template(
-    docs: impl Iterator<Item = Doc>,
-    template: impl Into<String>,
-) -> impl Iterator<Item = Doc> {
-    let template: String = template.into();
-    docs.map(move |doc| doc.with_template(&template))
+pub fn set_template<'a>(
+    docs: impl Iterator<Item = Doc> + 'a,
+    template: &'a str,
+) -> impl Iterator<Item = Doc> + 'a {
+    docs.map(move |doc| doc.set_template(&template))
+}
+
+pub fn set_template_if_needed<'a>(
+    docs: impl Iterator<Item = Doc> + 'a,
+    template: &'a str,
+) -> impl Iterator<Item = Doc> + 'a {
+    docs.map(move |doc| doc.set_template_if_needed(template))
 }
