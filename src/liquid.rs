@@ -12,7 +12,7 @@ impl From<&Doc> for model::Object {
             "modified": doc.modified,
             "title": doc.title,
             "content": doc.content,
-            "meta": doc.meta.clone(),
+            "meta": doc.meta,
         })
     }
 }
