@@ -1,4 +1,4 @@
-use crate::doc::Doc;
+use crate::{doc::Doc, html::strip_tags};
 use pulldown_cmark::{html, Parser};
 
 pub fn markdown_to_html(markdown: &str) -> String {
@@ -12,6 +12,15 @@ impl Doc {
     /// Render content to markdown
     pub fn render_markdown(mut self) -> Self {
         self.content = markdown_to_html(&self.content);
+        self
+    }
+
+    /// Strip markdown from text
+    pub fn strip_markdown(mut self) -> Self {
+        // render markdown to html
+        let html_str = markdown_to_html(&self.content);
+        // then strip the html and assign
+        self.content = strip_tags(&html_str);
         self
     }
 }

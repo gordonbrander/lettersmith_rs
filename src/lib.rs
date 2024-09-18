@@ -3,6 +3,7 @@ pub mod absolutize;
 pub mod cli;
 pub mod doc;
 pub mod docs;
+pub mod html;
 pub mod io;
 pub mod json;
 pub mod liquid;
