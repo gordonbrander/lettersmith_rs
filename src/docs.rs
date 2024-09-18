@@ -11,9 +11,9 @@ use std::path::Path;
 pub fn read<P, I>(paths: I) -> impl Iterator<Item = Result<Doc, impl Error>>
 where
     P: AsRef<Path>,
-    I: IntoIterator<Item = P>,
+    I: Iterator<Item = P>,
 {
-    paths.into_iter().map(|path| Doc::read(path))
+    paths.map(|path| Doc::read(path))
 }
 
 /// Parse JSON documents from stdin as line-separated JSON.
@@ -29,7 +29,7 @@ pub fn read_stdin() -> impl Iterator<Item = Result<Doc, impl Error>> {
 /// Write docs to the output directory.
 /// Logs successful writes to stdout.
 /// Logs errors to stderr.
-pub fn write(docs: impl IntoIterator<Item = Doc>, output_dir: &Path) {
+pub fn write(docs: impl Iterator<Item = Doc>, output_dir: &Path) {
     for doc in docs {
         match doc.write(output_dir) {
             Ok(_) => println!("Wrote {:?} to {:?}", doc.id_path, doc.output_path),
@@ -40,7 +40,7 @@ pub fn write(docs: impl IntoIterator<Item = Doc>, output_dir: &Path) {
 
 /// Write documents to stdout as line-separated JSON.
 /// Any errors are output to stderr.
-pub fn write_stdio(docs: impl IntoIterator<Item = Doc>) {
+pub fn write_stdio(docs: impl Iterator<Item = Doc>) {
     for doc in docs {
         let serialized = serde_json::to_string(&doc);
         match serialized {

@@ -6,6 +6,6 @@ use tap::Pipe;
 /// Read all file paths to docs and stream JSON to stdout.
 fn main() {
     let args = parse_args();
-    let docs = docs::read(args.files).pipe(dump_errors_to_stderr);
+    let docs = docs::read(args.files.into_iter()).pipe(dump_errors_to_stderr);
     docs::write_stdio(docs);
 }
