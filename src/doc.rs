@@ -3,7 +3,6 @@ use crate::json::{self, merge};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use toml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Doc {
@@ -94,11 +93,13 @@ impl Doc {
         self
     }
 
+    /// Set template, overwriting whatever was there previously
     pub fn set_template(mut self, template: impl Into<String>) -> Self {
         self.template = template.into();
         self
     }
 
+    /// Set template if one hasn't been set already
     pub fn set_template_if_needed(mut self, template: impl Into<String>) -> Self {
         if self.template.is_empty() {
             self.template = template.into();
@@ -106,14 +107,18 @@ impl Doc {
         self
     }
 
-    pub fn set_meta(mut self, meta: json::Value) -> Self {
-        self.meta = meta;
-        self
-    }
-
-    /// Merge new meta into existing meta
-    pub fn merge_meta(mut self, patch: json::Value) -> Self {
-        merge(&mut self.meta, patch);
+    /// Set template based on parent directory name
+    /// Falls back to `default.html` if no parent.
+    pub fn autotemplate(mut self) -> Self {
+        if self.template.is_empty() {
+            let template = PathBuf::from(&self.id_path)
+                .parent()
+                .and_then(|p| p.file_name())
+                .and_then(|name| name.to_str())
+                .map(|name| format!("{}.html", name))
+                .unwrap_or_else(|| "default.html".to_string());
+            self.template = template;
+        }
         self
     }
 
@@ -133,19 +138,23 @@ impl Doc {
         self.set_extension("html")
     }
 
-    pub fn autotemplate(mut self) -> Self {
-        if self.template.is_empty() {
-            let template = PathBuf::from(&self.id_path)
-                .parent()
-                .and_then(|p| p.file_name())
-                .and_then(|name| name.to_str())
-                .map(|name| format!("{}.html", name))
-                .unwrap_or_else(|| "default.html".to_string());
-            self.template = template;
-        }
+    pub fn set_meta(mut self, meta: json::Value) -> Self {
+        self.meta = meta;
         self
     }
 
+    /// Merge new meta into existing meta
+    pub fn merge_meta(mut self, patch: json::Value) -> Self {
+        merge(&mut self.meta, patch);
+        self
+    }
+
+    /// Uplift metadata, looking for blessed fields and assigning values to doc:
+    /// - title
+    /// - created
+    /// - modified
+    /// - permalink
+    /// - template
     pub fn uplift_meta(mut self) -> Self {
         if let Some(json::Value::String(title)) = self.meta.get("title") {
             self.title = title.clone();
@@ -169,9 +178,10 @@ impl Doc {
         self
     }
 
+    /// Parse JSON frontmatter
     pub fn parse_frontmatter(mut self) -> Self {
         if let Some((frontmatter, content)) = self.content.split_once("---\n") {
-            if let Ok(meta) = toml::from_str(frontmatter) {
+            if let Ok(meta) = serde_json::from_str(frontmatter) {
                 self.meta = meta;
                 self.content = content.to_string();
             }
