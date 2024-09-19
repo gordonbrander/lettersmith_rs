@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
+use crate::token_template;
 use lazy_static::lazy_static;
 use regex::{self, Regex};
 use tap::Pipe;
+
+use crate::doc::Doc;
 
 fn compile_non_slug_chars_regex() -> Regex {
     let pattern_str = format!("[{}]", regex::escape("[](){}<>:,;?!^&%$#@'\"|*~"));
@@ -38,6 +43,12 @@ pub struct Wikilink {
     pub slug: String,
 }
 
+impl From<Wikilink> for HashMap<&str, String> {
+    fn from(wikilink: Wikilink) -> Self {
+        HashMap::from([("text", wikilink.text), ("slug", wikilink.slug)])
+    }
+}
+
 fn parse_wikilink(wikilink_str: &str) -> Wikilink {
     let inner = wikilink_str.trim_matches(|c| c == '[' || c == ']' || c == ' ');
     if let Some((slug, text)) = inner.split_once('|') {
@@ -70,21 +81,28 @@ pub fn strip_wikilinks(text: &str) -> String {
         .into_owned()
 }
 
-pub fn render_wikilinks<F>(text: &str, render_wikilink: F) -> String
-where
-    F: Fn(&str, &str, &str) -> String,
-{
-    let text = TRANSCLUDE.replace_all(text, |caps: &regex::Captures| {
-        let wikilink = parse_wikilink(&caps[0]);
-        render_wikilink(&wikilink.slug, &wikilink.text, "transclude")
-    });
-
+pub fn render_wikilinks_in_text(text: &str, template: &str) -> String {
     WIKILINK
         .replace_all(&text, |caps: &regex::Captures| {
             let wikilink = parse_wikilink(&caps[0]);
-            render_wikilink(&wikilink.slug, &wikilink.text, "inline")
+            let parts = HashMap::from(wikilink);
+            token_template::render(template, &parts)
         })
         .into_owned()
+}
+
+impl Doc {
+    pub fn render_wikilinks(mut self, template: &str) -> Self {
+        self.content = render_wikilinks_in_text(&self.content, template);
+        self
+    }
+}
+
+pub fn render_wikilinks<'a>(
+    docs: impl Iterator<Item = Doc> + 'a,
+    template: &'a str,
+) -> impl Iterator<Item = Doc> + 'a {
+    docs.map(move |doc| doc.render_wikilinks(template))
 }
 
 #[cfg(test)]
@@ -132,26 +150,8 @@ mod tests {
     #[test]
     fn test_render_wikilinks() {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
-        let rendered = render_wikilinks(text, |slug, text, _| {
-            format!("<a href=\"{}.html\">{}</a>", slug, text)
-        });
+        let rendered = render_wikilinks_in_text(text, "<a href=\":slug.html\">:text</a>");
         assert_eq!(rendered, "This is a <a href=\"wikilink.html\">wikilink</a> and a <a href=\"link.html\">Custom Text</a>.");
-    }
-
-    #[test]
-    fn test_transclude() {
-        let text = "Text\n[[transclude]]\nMore text.";
-        let rendered = render_wikilinks(text, |slug, text, kind| {
-            if kind == "transclude" {
-                format!("<div class=\"transclude\">{}</div>", slug)
-            } else {
-                format!("<a href=\"{}.html\">{}</a>", slug, text)
-            }
-        });
-        assert_eq!(
-            rendered,
-            "Text\n<div class=\"transclude\">transclude</div>\nMore text."
-        );
     }
 
     #[test]
@@ -166,12 +166,5 @@ mod tests {
         let text = "This text has no wikilinks.";
         let wikilinks: Vec<Wikilink> = find_wikilinks(text).collect();
         assert_eq!(wikilinks.len(), 0);
-    }
-
-    #[test]
-    fn test_strip_wikilinks_with_transclude() {
-        let text = "[[Transclude]]\nThis is a [[wikilink]].";
-        let stripped = strip_wikilinks(text);
-        assert_eq!(stripped, "\nThis is a wikilink.");
     }
 }
