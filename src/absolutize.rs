@@ -38,3 +38,54 @@ pub fn absolutize_urls<'a>(
 ) -> impl Iterator<Item = Doc> + 'a {
     docs.map(move |doc| doc.absolutize_urls(base_url))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::json::json;
+    use chrono::Utc;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_qualify_url() {
+        assert_eq!(
+            qualify_url("/path", "https://example.com"),
+            "https://example.com/path"
+        );
+        assert_eq!(
+            qualify_url("https://other.com", "https://example.com"),
+            "https://other.com"
+        );
+        assert_eq!(
+            qualify_url("/path", "https://example.com/"),
+            "https://example.com/path"
+        );
+    }
+
+    #[test]
+    fn test_absolutize_urls_in_html() {
+        let html = r#"<a href="/relative">Link</a><img src="https://absolute.com/image.jpg">"#;
+        let base_url = "https://example.com";
+        let expected = r#"<a href="https://example.com/relative">Link</a><img src="https://absolute.com/image.jpg">"#;
+        assert_eq!(absolutize_urls_in_html(html, base_url), expected);
+    }
+
+    #[test]
+    fn test_doc_absolutize_urls() {
+        let doc = Doc {
+            id_path: PathBuf::from("test.md"),
+            input_path: None,
+            output_path: PathBuf::from("test.html"),
+            created: Utc::now(),
+            modified: Utc::now(),
+            title: "Test".to_string(),
+            content: "<a href='/relative'>Link</a>".to_string(),
+            template: "".to_string(),
+            meta: json!({}),
+        };
+        let base_url = "https://example.com";
+        let expected_content = r#"<a href="https://example.com/relative">Link</a>"#;
+        let absolutized = doc.absolutize_urls(base_url);
+        assert_eq!(absolutized.content, expected_content);
+    }
+}

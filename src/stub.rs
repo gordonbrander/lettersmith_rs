@@ -46,6 +46,7 @@ mod tests {
     use super::*;
     use crate::doc::Doc;
     use crate::json::json;
+
     #[test]
     fn test_stub_from_doc() {
         let doc = Doc {
