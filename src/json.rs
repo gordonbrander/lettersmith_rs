@@ -1,3 +1,4 @@
+pub use serde_json::json;
 pub use serde_json::Value;
 use std::fs::File;
 use std::io::{BufReader, Result};
