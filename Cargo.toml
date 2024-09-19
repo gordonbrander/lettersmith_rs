@@ -7,6 +7,10 @@ edition = "2021"
 name = "ls_load"
 path = "src/bin/ls_load.rs"
 
+[[bin]]
+name = "ls_write"
+path = "src/bin/ls_write.rs"
+
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.17", features = ["derive"] }
