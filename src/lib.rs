@@ -12,6 +12,7 @@ pub mod permalink;
 pub mod stub;
 pub mod text;
 pub mod token_template;
+pub mod wikilink;
 
 #[cfg(test)]
 mod tests {
