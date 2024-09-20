@@ -1,4 +1,4 @@
-use crate::{doc::Doc, html::strip_tags};
+use crate::{doc::Doc, html::strip_html};
 use pulldown_cmark::{html, Parser};
 use tap::Pipe;
 
@@ -10,7 +10,7 @@ pub fn render_markdown(markdown: &str) -> String {
 }
 
 pub fn strip_markdown(markdown: &str) -> String {
-    render_markdown(markdown).pipe(|html_str| strip_tags(&html_str))
+    render_markdown(markdown).pipe(|html_str| strip_html(&html_str))
 }
 
 impl Doc {
@@ -25,7 +25,7 @@ impl Doc {
         // render markdown to html
         let html_str = render_markdown(&self.content);
         // then strip the html and assign
-        self.content = strip_tags(&html_str);
+        self.content = strip_html(&html_str);
         self
     }
 }

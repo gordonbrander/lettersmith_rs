@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::markdown::strip_markdown;
-use crate::{html::strip_tags, text::first_sentence, token_template};
+use crate::{html::strip_html, text::first_sentence, token_template};
 use lazy_static::lazy_static;
 use regex::{self, Regex};
 use tap::Pipe;
@@ -95,7 +95,7 @@ pub fn render_wikilinks_in_text(text: &str, template: &str) -> String {
 pub fn get_summary_wiki_html(text: &str) -> String {
     first_sentence(text)
         .pipe(|s| strip_wikilinks(&s))
-        .pipe(|s| strip_tags(&s))
+        .pipe(|s| strip_html(&s))
 }
 
 pub fn get_summary_wiki_markdown(text: &str) -> String {
