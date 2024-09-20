@@ -1,5 +1,5 @@
-use crate::doc::Doc;
 use crate::text::truncate_280;
+use crate::{doc::Doc, docs::Docs};
 use chrono::{DateTime, Utc};
 use std::path::PathBuf;
 
@@ -7,7 +7,7 @@ use std::path::PathBuf;
 /// the summary details of a document. No content, no meta, no template.
 ///
 /// Only properties that implement Hash and Eq, so stubs can be used in HashSets.
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
 pub struct Stub {
     pub id_path: PathBuf,
     pub output_path: PathBuf,
@@ -36,10 +36,14 @@ impl From<&Doc> for Stub {
     }
 }
 
-/// Create an iterator of Stubs from an iterator of Docs
-pub fn stubs(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Stub> {
-    docs.into_iter().map(|doc| Stub::from(&doc))
+pub trait StubDocs: Docs {
+    /// Create an iterator of Stubs from an iterator of Docs
+    fn stubs(self) -> impl Iterator<Item = Stub> {
+        self.map(|doc| Stub::from(&doc))
+    }
 }
+
+impl<I> StubDocs for I where I: Docs {}
 
 #[cfg(test)]
 mod tests {
@@ -121,7 +125,7 @@ mod tests {
             },
         ];
 
-        let stubs: Vec<Stub> = stubs(docs.into_iter()).collect();
+        let stubs: Vec<Stub> = docs.into_iter().stubs().collect();
 
         assert_eq!(stubs.len(), 2);
         assert_eq!(stubs[0].title, "Test Title 1");
