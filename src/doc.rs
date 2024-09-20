@@ -1,5 +1,5 @@
 use crate::io::write_file_deep;
-use crate::json::{self, json, merge};
+use crate::json::{self, merge};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -47,14 +47,7 @@ impl Doc {
         let path_ref = id_path.as_ref();
         Doc {
             id_path: path_ref.to_path_buf(),
-            output_path: path_ref.to_path_buf(),
-            input_path: None,
-            created: Utc::now(),
-            modified: Utc::now(),
-            title: "".into(),
-            content: "".into(),
-            meta: json!({}),
-            template: "".into(),
+            ..Default::default()
         }
     }
 
