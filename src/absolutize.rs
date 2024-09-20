@@ -1,4 +1,4 @@
-use crate::doc::Doc;
+use crate::{doc::Doc, docs::Docs};
 use regex::Regex;
 
 /// Qualify a URL with a base URL if it's relative.
@@ -31,13 +31,14 @@ impl Doc {
     }
 }
 
-/// Absolutize URLs in the content of a sequence of documents.
-pub fn absolutize_urls<'a>(
-    docs: impl Iterator<Item = Doc> + 'a,
-    base_url: &'a str,
-) -> impl Iterator<Item = Doc> + 'a {
-    docs.map(move |doc| doc.absolutize_urls(base_url))
+pub trait AbsolutizableDocs: Docs {
+    /// Absolutize URLs in the content of a sequence of documents.
+    fn absolutize_urls(self, base_url: &str) -> impl Docs {
+        self.map(move |doc| doc.absolutize_urls(base_url))
+    }
 }
+
+impl<I> AbsolutizableDocs for I where I: Docs {}
 
 #[cfg(test)]
 mod tests {
