@@ -1,8 +1,7 @@
 use lettersmith::cli::parse_args;
-use lettersmith::io::dump_errors_to_stderr;
+use lettersmith::docs::{DocResults, Docs};
 use lettersmith::{docs, json};
 use std::path::PathBuf;
-use tap::Pipe;
 
 /// Read docs from stdin and write to output dir
 fn main() {
@@ -12,6 +11,7 @@ fn main() {
         Some(json::Value::String(value)) => PathBuf::from(value),
         _ => PathBuf::from("public"),
     };
-    let docs = docs::read_stdin().pipe(dump_errors_to_stderr);
-    docs::write(docs, &output_dir);
+    docs::read_stdin()
+        .dump_errors_to_stderr()
+        .write(&output_dir);
 }

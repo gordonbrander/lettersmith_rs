@@ -107,7 +107,7 @@ impl Doc {
         self
     }
 
-    /// Set template based on parent directory name
+    /// Set template based on parent directory name.
     /// Falls back to `default.html` if no parent.
     pub fn autotemplate(mut self) -> Self {
         if self.template.is_empty() {
