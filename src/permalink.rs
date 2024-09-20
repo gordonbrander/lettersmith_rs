@@ -1,4 +1,5 @@
 use crate::doc::Doc;
+use crate::docs::Docs;
 use crate::token_template;
 use std::collections::HashMap;
 
@@ -40,19 +41,20 @@ impl Doc {
     }
 }
 
-/// Render markdown content for all docs
-pub fn permalink(
-    docs: impl Iterator<Item = Doc>,
-    permalink_template: impl Into<String>,
-) -> impl Iterator<Item = Doc> {
-    let permalink_template: String = permalink_template.into();
-    docs.map(move |doc| doc.permalink(&permalink_template))
+pub trait PermalinkDocs: Docs {
+    /// Render markdown content for all docs
+    fn permalink(self, permalink_template: impl Into<String>) -> impl Docs {
+        let permalink_template: String = permalink_template.into();
+        self.map(move |doc| doc.permalink(&permalink_template))
+    }
+
+    fn blog_permalink(self) -> impl Docs {
+        self.permalink(":yyyy/:mm/:dd/:stem/index.html")
+    }
+
+    fn page_permalink(self) -> impl Docs {
+        self.permalink(":parents/:stem/index.html")
+    }
 }
 
-pub fn blog_permalink(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
-    permalink(docs, ":yyyy/:mm/:dd/:stem/index.html")
-}
-
-pub fn page_permalink(docs: impl Iterator<Item = Doc>) -> impl Iterator<Item = Doc> {
-    permalink(docs, ":parents/:stem/index.html")
-}
+impl<I> PermalinkDocs for I where I: Docs {}
