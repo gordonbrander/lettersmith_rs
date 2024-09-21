@@ -61,12 +61,18 @@ pub fn strip_wikilinks(text: &str) -> String {
         .into_owned()
 }
 
-pub fn render_wikilinks_in_text(text: &str, template: &str) -> String {
+pub fn render_wikilinks_in_text(
+    text: &str,
+    template: &str,
+    context: &HashMap<&str, String>,
+) -> String {
     WIKILINK
         .replace_all(&text, |caps: &regex::Captures| {
             let wikilink = parse_wikilink(&caps[0]);
-            let parts = HashMap::from(wikilink);
-            token_template::render(template, &parts)
+            let mut context = context.clone();
+            context.insert("text", wikilink.text);
+            context.insert("slug", wikilink.slug);
+            token_template::render(template, &context)
         })
         .into_owned()
 }
@@ -101,15 +107,15 @@ impl Doc {
             .pipe(|s| strip_markdown(&s))
     }
 
-    pub fn render_wikilinks(mut self, template: &str) -> Self {
-        self.content = render_wikilinks_in_text(&self.content, template);
+    pub fn render_wikilinks(mut self, template: &str, context: &HashMap<&str, String>) -> Self {
+        self.content = render_wikilinks_in_text(&self.content, template, context);
         self
     }
 }
 
 pub trait WikilinkDocs: Docs {
-    fn render_wikilinks(self, template: &str) -> impl Docs {
-        self.map(move |doc| doc.render_wikilinks(template))
+    fn render_wikilinks(self, template: &str, context: &HashMap<&str, String>) -> impl Docs {
+        self.map(move |doc| doc.render_wikilinks(template, context))
     }
 }
 
@@ -152,7 +158,8 @@ mod tests {
     #[test]
     fn test_render_wikilinks() {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
-        let rendered = render_wikilinks_in_text(text, "<a href=\"{slug}.html\">{text}</a>");
+        let rendered =
+            render_wikilinks_in_text(text, "<a href=\"{slug}.html\">{text}</a>", &HashMap::new());
         assert_eq!(rendered, "This is a <a href=\"wikilink.html\">wikilink</a> and a <a href=\"link.html\">Custom Text</a>.");
     }
 
