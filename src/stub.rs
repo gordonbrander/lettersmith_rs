@@ -1,13 +1,14 @@
 use crate::text::to_slug;
 use crate::{doc::Doc, docs::Docs};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// A struct for representing a stub. A stub is just a container for
 /// the summary details of a document. No content, no meta, no template.
 ///
 /// Only properties that implement Hash and Eq, so stubs can be used in HashSets.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Stub {
     pub id_path: PathBuf,
     pub output_path: PathBuf,
