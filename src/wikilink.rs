@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
+use crate::doc::Doc;
+use crate::docs::Docs;
 use crate::markdown::strip_markdown;
 use crate::{html::strip_html, text::first_sentence, token_template};
 use lazy_static::lazy_static;
 use regex::{self, Regex};
 use tap::Pipe;
-
-use crate::doc::Doc;
 
 fn compile_non_slug_chars_regex() -> Regex {
     let pattern_str = format!("[{}]", regex::escape("[](){}<>:,;?!^&%$#@'\"|*~"));
@@ -66,7 +66,7 @@ fn parse_wikilink(wikilink_str: &str) -> Wikilink {
     }
 }
 
-pub fn find_wikilinks(s: &str) -> impl Iterator<Item = Wikilink> + '_ {
+pub fn find_wikilinks<'a>(s: &'a str) -> impl Iterator<Item = Wikilink> + 'a {
     WIKILINK
         .captures_iter(s)
         .map(|caps| parse_wikilink(&caps[0]))
@@ -105,18 +105,36 @@ pub fn get_summary_wiki_markdown(text: &str) -> String {
 }
 
 impl Doc {
+    pub fn find_wikilinks<'a>(&'a self) -> impl Iterator<Item = Wikilink> + 'a {
+        let content: &'a str = &self.content;
+        find_wikilinks(content)
+    }
+
+    pub fn get_summary_wiki_html(&self) -> String {
+        first_sentence(&self.content)
+            .pipe(|s| strip_wikilinks(&s))
+            .pipe(|s| strip_html(&s))
+    }
+
+    pub fn get_summary_wiki_markdown(&self) -> String {
+        first_sentence(&self.content)
+            .pipe(|s| strip_wikilinks(&s))
+            .pipe(|s| strip_markdown(&s))
+    }
+
     pub fn render_wikilinks(mut self, template: &str) -> Self {
         self.content = render_wikilinks_in_text(&self.content, template);
         self
     }
 }
 
-pub fn render_wikilinks<'a>(
-    docs: impl Iterator<Item = Doc> + 'a,
-    template: &'a str,
-) -> impl Iterator<Item = Doc> + 'a {
-    docs.map(move |doc| doc.render_wikilinks(template))
+pub trait WikilinkDocs: Docs {
+    fn render_wikilinks(self, template: &str) -> impl Docs {
+        self.map(move |doc| doc.render_wikilinks(template))
+    }
 }
+
+impl<I> WikilinkDocs for I where I: Docs {}
 
 #[cfg(test)]
 mod tests {
