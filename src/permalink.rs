@@ -49,11 +49,11 @@ pub trait PermalinkDocs: Docs {
     }
 
     fn blog_permalink(self) -> impl Docs {
-        self.permalink(":yyyy/:mm/:dd/:stem/index.html")
+        self.permalink("{yyyy}/{mm}/{dd}/{stem}/index.html")
     }
 
     fn page_permalink(self) -> impl Docs {
-        self.permalink(":parents/:stem/index.html")
+        self.permalink("{parents}/{stem}/index.html")
     }
 }
 
@@ -94,7 +94,7 @@ mod tests {
             ..Default::default()
         };
 
-        let permalink_doc = doc.permalink(":yyyy/:mm/:dd/:stem/index.html");
+        let permalink_doc = doc.permalink("{yyyy}/{mm}/{dd}/{stem}/index.html");
         assert_eq!(
             permalink_doc.output_path,
             PathBuf::from("2023/05/15/test_file/index.html")

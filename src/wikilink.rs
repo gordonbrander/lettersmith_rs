@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn test_render_wikilinks() {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
-        let rendered = render_wikilinks_in_text(text, "<a href=\":slug.html\">:text</a>");
+        let rendered = render_wikilinks_in_text(text, "<a href=\"{slug}.html\">{text}</a>");
         assert_eq!(rendered, "This is a <a href=\"wikilink.html\">wikilink</a> and a <a href=\"link.html\">Custom Text</a>.");
     }
 
