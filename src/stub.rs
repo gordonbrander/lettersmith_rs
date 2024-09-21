@@ -18,6 +18,12 @@ pub struct Stub {
     pub summary: String,
 }
 
+impl Stub {
+    pub fn get_title_slug(&self) -> String {
+        to_slug(&self.title)
+    }
+}
+
 impl From<&Doc> for Stub {
     fn from(doc: &Doc) -> Self {
         Stub {
@@ -41,8 +47,8 @@ pub trait StubDocs: Docs {
 impl<I> StubDocs for I where I: Docs {}
 
 pub trait Stubs: Iterator<Item = Stub> {
-    fn index_by_slug(docs: impl Stubs) -> std::collections::HashMap<String, Stub> {
-        docs.map(|doc| (to_slug(&doc.title), doc)).collect()
+    fn index_by_slug(stubs: impl Stubs) -> std::collections::HashMap<String, Stub> {
+        stubs.map(|stub| (stub.get_title_slug(), stub)).collect()
     }
 }
 
