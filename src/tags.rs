@@ -95,7 +95,7 @@ pub trait TaggedDocs: Docs {
     /// Looks for an array in the meta key specified.
     /// Returns a hashmap of stub lists, indexed by term.
     /// Terms are sluggified to normalize them for lookup by key.
-    fn index_by_taxonomy(&mut self, key: &str) -> HashMap<String, Vec<Stub>> {
+    fn index_by_taxonomy(self, key: &str) -> HashMap<String, Vec<Stub>> {
         let mut tax_index: HashMap<String, Vec<Stub>> = HashMap::new();
         for doc in self {
             if let Some(json::Value::Array(terms)) = doc.meta.get(key) {
@@ -123,7 +123,7 @@ pub trait TaggedDocs: Docs {
     /// Looks up tags by taxonomy and files stubs by tag under generated archive pages.
     /// Returns a new docs iterator made up of just the archives generated.
     fn generate_taxonomy_archives(
-        &mut self,
+        self,
         key: &str,
         template: &str,
         output_path_template: &str,
@@ -151,7 +151,7 @@ pub trait TaggedDocs: Docs {
     }
 
     /// Generate tag archive docs for this docs iterator.
-    fn generate_tag_archives(&mut self, template: &str, output_path_template: &str) -> impl Docs {
+    fn generate_tag_archives(self, template: &str, output_path_template: &str) -> impl Docs {
         self.generate_taxonomy_archives("tags", template, output_path_template)
     }
 }
