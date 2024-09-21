@@ -3,6 +3,16 @@ use crate::json;
 use crate::stub::Stub;
 use std::collections::HashMap;
 
+/// Given an index-shaped hashmap and a list of keys, return a combined
+/// iterator of the items of those keys.
+pub fn combine_index_keys<'a>(
+    index: &'a HashMap<String, Vec<Stub>>,
+    keys: &'a [String],
+) -> impl Iterator<Item = &'a Stub> + 'a {
+    keys.iter()
+        .flat_map(move |key| index.get(key).into_iter().flatten())
+}
+
 pub trait TaggedDocs: Docs {
     /// Index docs by taxonomy.
     /// Looks for an array in the meta key specified.
