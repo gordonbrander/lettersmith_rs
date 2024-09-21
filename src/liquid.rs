@@ -1,4 +1,5 @@
 use crate::doc::Doc;
+use crate::docs::Docs;
 use crate::json;
 pub use liquid::model;
 use std::io::{Error, Result};
@@ -73,9 +74,122 @@ impl Doc {
     }
 }
 
-pub fn render_liquid(
-    docs: impl Iterator<Item = Doc>,
-    data: json::Value,
-) -> impl Iterator<Item = Result<Doc>> {
-    docs.map(move |doc| doc.render_liquid(&data))
+pub trait LiquidDocs: Docs {
+    fn render_liquid(self, data: json::Value) -> impl Iterator<Item = Result<Doc>> {
+        self.map(move |doc| doc.render_liquid(&data))
+    }
+}
+
+impl<I> LiquidDocs for I where I: Docs {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+    use serde_json::json;
+
+    #[test]
+    fn test_json_to_liquid() {
+        let json_value = json!({
+            "null": null,
+            "bool": true,
+            "integer": 42,
+            "float": 3.14,
+            "string": "hello",
+            "array": [1, 2, 3],
+            "object": {"key": "value"}
+        });
+
+        let liquid_value = json_to_liquid(&json_value);
+
+        if let model::Value::Object(obj) = liquid_value {
+            assert!(matches!(obj.get("null"), Some(model::Value::Nil)));
+            assert_eq!(obj.get("bool"), Some(&model::Value::scalar(true)));
+            assert_eq!(obj.get("integer"), Some(&model::Value::scalar(42i64)));
+            assert_eq!(obj.get("float"), Some(&model::Value::scalar(3.14f64)));
+            assert_eq!(obj.get("string"), Some(&model::Value::scalar("hello")));
+
+            if let Some(model::Value::Array(arr)) = obj.get("array") {
+                assert_eq!(arr.len(), 3);
+                assert_eq!(arr[0], model::Value::scalar(1i64));
+                assert_eq!(arr[1], model::Value::scalar(2i64));
+                assert_eq!(arr[2], model::Value::scalar(3i64));
+            } else {
+                panic!("Expected array");
+            }
+
+            if let Some(model::Value::Object(nested_obj)) = obj.get("object") {
+                assert_eq!(nested_obj.get("key"), Some(&model::Value::scalar("value")));
+            } else {
+                panic!("Expected object");
+            }
+        } else {
+            panic!("Expected object");
+        }
+    }
+
+    #[test]
+    fn test_doc_to_liquid_object() {
+        let doc = Doc {
+            id_path: "test/doc".into(),
+            output_path: "test/doc".into(),
+            input_path: None,
+            created: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
+            modified: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
+            title: "Test Document".to_string(),
+            content: "Test content".to_string(),
+            template: "".to_string(),
+            meta: json!({"key": "value"}),
+        };
+
+        let liquid_obj: model::Object = (&doc).into();
+
+        assert_eq!(
+            liquid_obj.get("id_path"),
+            Some(&model::Value::scalar("test/doc"))
+        );
+        assert_eq!(
+            liquid_obj.get("created"),
+            Some(&model::Value::scalar("2020-11-10T00:01:32Z"))
+        );
+        assert_eq!(
+            liquid_obj.get("modified"),
+            Some(&model::Value::scalar("2020-11-10T00:01:32Z"))
+        );
+        assert_eq!(
+            liquid_obj.get("title"),
+            Some(&model::Value::scalar("Test Document"))
+        );
+        assert_eq!(
+            liquid_obj.get("content"),
+            Some(&model::Value::scalar("Test content"))
+        );
+
+        if let Some(model::Value::Object(meta_obj)) = liquid_obj.get("meta") {
+            assert_eq!(meta_obj.get("key"), Some(&model::Value::scalar("value")));
+        } else {
+            panic!("Expected meta to be an object");
+        }
+    }
+
+    #[test]
+    fn test_doc_render_liquid() {
+        let doc = Doc {
+            id_path: "test/doc".into(),
+            output_path: "test/doc".into(),
+            input_path: None,
+            created: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
+            modified: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
+            title: "Test Document".to_string(),
+            content: "Original content".to_string(),
+            template: "{{ data.message }} - {{ doc.title }}".to_string(),
+            meta: json!({"key": "value"}),
+        };
+
+        let data = json!({"message": "Hello, World!"});
+
+        let rendered_doc = doc.render_liquid(&data).unwrap();
+
+        assert_eq!(rendered_doc.content, "Hello, World! - Test Document");
+    }
 }
