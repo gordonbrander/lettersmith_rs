@@ -36,8 +36,8 @@ pub fn combine_index_values(index: &HashMap<String, Vec<Stub>>, keys: &[String])
 impl Doc {
     /// Get get tag string values from meta.
     /// Sluggifies tags to normalize them for string-matching.
-    pub fn get_meta_tags(&self) -> Option<Vec<String>> {
-        match self.meta.get("tags") {
+    pub fn get_meta_taxonomy(&self, key: &str) -> Option<Vec<String>> {
+        match self.meta.get(key) {
             Some(json::Value::Array(tag_values)) => {
                 let mut tag_strings: Vec<String> = tag_values
                     .iter()
@@ -51,21 +51,40 @@ impl Doc {
         }
     }
 
+    /// Get get tag string values from meta.
+    /// Sluggifies tags to normalize them for string-matching.
+    pub fn get_meta_tags(&self) -> Option<Vec<String>> {
+        self.get_meta_taxonomy("tags")
+    }
+
     /// Set "related" key on meta
     pub fn set_meta_related(self, related: Vec<Stub>) -> Self {
         self.merge_meta(json!({ "related": related }))
     }
 
-    /// Given an index, check the tags in meta, pluck the related
+    /// Given an index, check the taxonomy keys in meta, pluck the related stubs
     /// and set them on the "related" field of meta.
-    pub fn set_meta_related_from_index(self, index: HashMap<String, Vec<Stub>>) -> Self {
-        let Some(tags) = self.get_meta_tags() else {
+    pub fn set_meta_related_from_taxonomy_index(
+        self,
+        taxonomy_key: &str,
+        taxonomy_index: HashMap<String, Vec<Stub>>,
+    ) -> Self {
+        let Some(tags) = self.get_meta_taxonomy(taxonomy_key) else {
             return self;
         };
-        let related: Vec<Stub> = combine_index_values(&index, &tags);
+        let related: Vec<Stub> = combine_index_values(&taxonomy_index, &tags);
         self.merge_meta(json!({
             "related": related
         }))
+    }
+
+    /// Given an index, check the tag keys in meta, pluck the related stubs
+    /// and set them on the "related" field of meta.
+    pub fn set_meta_related_from_tag_index(
+        self,
+        taxonomy_index: HashMap<String, Vec<Stub>>,
+    ) -> Self {
+        self.set_meta_related_from_taxonomy_index("tags", taxonomy_index)
     }
 }
 
