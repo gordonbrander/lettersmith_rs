@@ -1,3 +1,4 @@
+use crate::text::to_slug;
 use crate::{doc::Doc, docs::Docs};
 use chrono::{DateTime, Utc};
 use std::path::PathBuf;
@@ -37,6 +38,12 @@ pub trait StubDocs: Docs {
 }
 
 impl<I> StubDocs for I where I: Docs {}
+
+pub trait Stubs: Iterator<Item = Stub> {
+    fn index_by_slug(docs: impl Stubs) -> std::collections::HashMap<String, Stub> {
+        docs.map(|doc| (to_slug(&doc.title), doc)).collect()
+    }
+}
 
 #[cfg(test)]
 mod tests {

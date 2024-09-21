@@ -1,11 +1,20 @@
+use lazy_static::lazy_static;
 use regex::Regex;
+use tap::Pipe;
 
-const _FIRST_SENTENCE: &str = r"^[^.]+";
+fn compile_non_slug_chars_regex() -> Regex {
+    let pattern_str = format!("[{}]", regex::escape("[](){}<>:,;?!^&%$#@'\"|*~"));
+    Regex::new(&pattern_str).expect("Could not parse regular expression")
+}
+
+lazy_static! {
+    static ref FIRST_SENTENCE: Regex = Regex::new(r"^[^.]+").expect("Could not compile Regex");
+    static ref NON_SLUG_CHARS: Regex = compile_non_slug_chars_regex();
+}
 
 /// Extract the first sentence from a string.
 pub fn first_sentence(plain_text: &str) -> String {
-    let re = Regex::new(_FIRST_SENTENCE).unwrap();
-    match re.find(plain_text) {
+    match FIRST_SENTENCE.find(plain_text) {
         Some(mat) => mat.as_str().to_string(),
         None => String::new(),
     }
@@ -26,6 +35,17 @@ pub fn truncate(text: &str, max_chars: usize, suffix: &str) -> String {
 /// Truncate a string to 280 characters, adding an ellipsis if truncated.
 pub fn truncate_280(text: &str) -> String {
     truncate(text, 280, "…")
+}
+
+pub fn remove_non_slug_chars(s: &str) -> String {
+    NON_SLUG_CHARS.replace_all(s, "").into_owned()
+}
+
+pub fn to_slug(s: &str) -> String {
+    s.trim()
+        .to_lowercase()
+        .replace(' ', "-")
+        .pipe(|s| remove_non_slug_chars(&s))
 }
 
 #[cfg(test)]
@@ -80,5 +100,20 @@ mod tests {
             ),
             "I pray thee, mark me. I, thus neglecting worldly ends, all dedicated To closeness and the bettering of my mind With that which, but by being so retired, O'er-prized all popular rate, in my false…"
         );
+    }
+
+    #[test]
+    fn test_remove_non_slug_chars() {
+        assert_eq!(remove_non_slug_chars("Hello, World!"), "Hello World");
+        assert_eq!(remove_non_slug_chars("Test@#$%^&*()"), "Test");
+        assert_eq!(remove_non_slug_chars("[Bracketed]"), "Bracketed");
+    }
+
+    #[test]
+    fn test_to_slug() {
+        assert_eq!(to_slug("Hello World!"), "hello-world");
+        assert_eq!(to_slug("Test 123"), "test-123");
+        assert_eq!(to_slug("  Spaced  "), "spaced");
+        assert_eq!(to_slug("Symbols@#$%"), "symbols");
     }
 }

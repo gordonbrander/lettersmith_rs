@@ -2,40 +2,19 @@ use std::collections::HashMap;
 
 use crate::doc::Doc;
 use crate::docs::Docs;
+use crate::html::strip_html;
 use crate::markdown::strip_markdown;
-use crate::{html::strip_html, text::first_sentence, token_template};
+use crate::text::{first_sentence, to_slug};
+use crate::token_template;
 use lazy_static::lazy_static;
 use regex::{self, Regex};
 use tap::Pipe;
 
-fn compile_non_slug_chars_regex() -> Regex {
-    let pattern_str = format!("[{}]", regex::escape("[](){}<>:,;?!^&%$#@'\"|*~"));
-    Regex::new(&pattern_str).expect("Could not parse regular expression")
-}
-
-fn compile_wikilink_regex() -> Regex {
-    Regex::new(r"\[\[([^\]]+)\]\]").expect("Could not parse regular expression")
-}
-
-fn compile_transclude_regex() -> Regex {
-    Regex::new(r"^\[\[([^\]]+)\]\]$").expect("Could not parse regular expression")
-}
-
 lazy_static! {
-    static ref NON_SLUG_CHARS: Regex = compile_non_slug_chars_regex();
-    static ref WIKILINK: Regex = compile_wikilink_regex();
-    static ref TRANSCLUDE: Regex = compile_transclude_regex();
-}
-
-pub fn remove_non_slug_chars(s: &str) -> String {
-    NON_SLUG_CHARS.replace_all(s, "").into_owned()
-}
-
-pub fn to_slug(s: &str) -> String {
-    s.trim()
-        .to_lowercase()
-        .replace(' ', "-")
-        .pipe(|s| remove_non_slug_chars(&s))
+    static ref WIKILINK: Regex =
+        Regex::new(r"\[\[([^\]]+)\]\]").expect("Could not parse regular expression");
+    static ref TRANSCLUDE: Regex =
+        Regex::new(r"^\[\[([^\]]+)\]\]$").expect("Could not parse regular expression");
 }
 
 /// Represents a parsed wikilink
@@ -141,14 +120,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_slug() {
-        assert_eq!(to_slug("Hello World!"), "hello-world");
-        assert_eq!(to_slug("Test 123"), "test-123");
-        assert_eq!(to_slug("  Spaced  "), "spaced");
-        assert_eq!(to_slug("Symbols@#$%"), "symbols");
-    }
-
-    #[test]
     fn test_parse_wikilink() {
         let wikilink = parse_wikilink("[[Page Name]]");
         assert_eq!(wikilink.text, "Page Name");
@@ -183,13 +154,6 @@ mod tests {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
         let rendered = render_wikilinks_in_text(text, "<a href=\"{slug}.html\">{text}</a>");
         assert_eq!(rendered, "This is a <a href=\"wikilink.html\">wikilink</a> and a <a href=\"link.html\">Custom Text</a>.");
-    }
-
-    #[test]
-    fn test_remove_non_slug_chars() {
-        assert_eq!(remove_non_slug_chars("Hello, World!"), "Hello World");
-        assert_eq!(remove_non_slug_chars("Test@#$%^&*()"), "Test");
-        assert_eq!(remove_non_slug_chars("[Bracketed]"), "Bracketed");
     }
 
     #[test]
