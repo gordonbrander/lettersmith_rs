@@ -41,3 +41,5 @@ pub trait TaggedDocs: Docs {
         self.index_by_taxonomy("tags")
     }
 }
+
+impl<I> TaggedDocs for I where I: Docs {}
