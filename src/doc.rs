@@ -1,6 +1,6 @@
 use crate::io::write_file_deep;
 use crate::json::{self, merge};
-use crate::text::{first_sentence, truncate, truncate_280};
+use crate::text::{first_sentence, to_slug, truncate, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -96,6 +96,12 @@ impl Doc {
     pub fn set_title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
         self
+    }
+
+    /// Get title field as a slug.
+    /// "My Title" is returned as "my-title".
+    pub fn get_title_slug(&self) -> String {
+        to_slug(&self.title)
     }
 
     pub fn set_content(mut self, content: impl Into<String>) -> Self {
