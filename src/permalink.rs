@@ -58,3 +58,46 @@ pub trait PermalinkDocs: Docs {
 }
 
 impl<I> PermalinkDocs for I where I: Docs {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_get_permalink_template_parts() {
+        let doc = Doc {
+            id_path: PathBuf::from("parent/test_file.md"),
+            created: Utc.with_ymd_and_hms(2023, 5, 15, 0, 0, 0).unwrap(),
+            ..Default::default()
+        };
+
+        let parts = doc.get_permalink_template_parts().unwrap();
+
+        assert_eq!(parts.get("name"), Some(&"test_file.md".to_string()));
+        assert_eq!(parts.get("stem"), Some(&"test_file".to_string()));
+        assert_eq!(parts.get("ext"), Some(&"md".to_string()));
+        assert_eq!(parts.get("parents"), Some(&"parent".to_string()));
+        assert_eq!(parts.get("parent"), Some(&"parent".to_string()));
+        assert_eq!(parts.get("yyyy"), Some(&"2023".to_string()));
+        assert_eq!(parts.get("yy"), Some(&"23".to_string()));
+        assert_eq!(parts.get("mm"), Some(&"05".to_string()));
+        assert_eq!(parts.get("dd"), Some(&"15".to_string()));
+    }
+
+    #[test]
+    fn test_permalink() {
+        let doc = Doc {
+            id_path: PathBuf::from("parent/test_file.md"),
+            created: Utc.with_ymd_and_hms(2023, 5, 15, 0, 0, 0).unwrap(),
+            ..Default::default()
+        };
+
+        let permalink_doc = doc.permalink(":yyyy/:mm/:dd/:stem/index.html");
+        assert_eq!(
+            permalink_doc.output_path,
+            PathBuf::from("2023/05/15/test_file/index.html")
+        );
+    }
+}
