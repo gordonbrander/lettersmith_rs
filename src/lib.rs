@@ -10,6 +10,7 @@ pub mod liquid;
 pub mod markdown;
 pub mod permalink;
 pub mod stub;
+pub mod tags;
 pub mod text;
 pub mod token_template;
 pub mod wikilink;
