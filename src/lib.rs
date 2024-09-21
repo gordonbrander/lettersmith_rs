@@ -9,6 +9,7 @@ pub mod json;
 pub mod liquid;
 pub mod markdown;
 pub mod permalink;
+pub mod sitemap;
 pub mod stub;
 pub mod tags;
 pub mod text;
