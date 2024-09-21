@@ -2,25 +2,9 @@ use crate::doc::Doc;
 use crate::io::dump_errors_to_stderr;
 use serde_json;
 use std::collections::HashSet;
-use std::error::Error;
 use std::io::{self, BufRead};
+use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
-
-/// Load documents from an iterator of paths.
-/// Returns an iterator of doc results.
-pub fn read(paths: impl Iterator<Item = PathBuf>) -> impl Iterator<Item = Result<Doc, impl Error>> {
-    paths.map(|path| Doc::read(path))
-}
-
-/// Parse JSON documents from stdin as line-separated JSON.
-/// Returns an iterator of doc results.
-pub fn read_stdin() -> impl Iterator<Item = Result<Doc, impl Error>> {
-    io::stdin()
-        .lock()
-        .lines()
-        .filter_map(Result::ok)
-        .map(|line| serde_json::from_str(&line))
-}
 
 /// Docs trait is any iterator of Docs
 pub trait Docs: Iterator<Item = Doc> + Sized {
@@ -122,12 +106,6 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         self.sort_by_created().take(n)
     }
 
-    /// Set template based on parent directory name.
-    /// Falls back to default.html if no parent.
-    fn autotemplate(self) -> impl Docs {
-        self.map(|doc| doc.autotemplate())
-    }
-
     /// Set output path extension.
     fn set_extension(self, extension: &str) -> impl Docs {
         self.map(|doc| doc.set_extension(extension))
@@ -144,17 +122,17 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         self.map(move |doc| doc.set_template(template_string.clone()))
     }
 
-    /// Set template if one hasn't been set already
-    fn set_template_if_needed(self, template: impl Into<String>) -> impl Docs {
-        let template_string = template.into();
-        self.map(move |doc| doc.set_template_if_needed(template_string.clone()))
+    /// Set template based on parent directory name.
+    /// Falls back to default.html if no parent.
+    fn autotemplate(self) -> impl Iterator<Item = Result<Doc>> {
+        self.map(|doc| doc.autotemplate())
     }
 }
 
 /// Blanket-implement DocIterator for any iterator of docs
 impl<I> Docs for I where I: Iterator<Item = Doc> {}
 
-pub trait DocResults<E: Error>: Iterator<Item = Result<Doc, E>> + Sized {
+pub trait DocResults: Iterator<Item = Result<Doc>> + Sized {
     /// Dump errors in result to stderr
     /// Returns a DocIterator
     fn dump_errors_to_stderr(self) -> impl Docs {
@@ -162,9 +140,23 @@ pub trait DocResults<E: Error>: Iterator<Item = Result<Doc, E>> + Sized {
     }
 }
 
-impl<I, E> DocResults<E> for I
-where
-    E: Error,
-    I: Iterator<Item = Result<Doc, E>>,
-{
+impl<I> DocResults for I where I: Iterator<Item = Result<Doc>> {}
+
+/// Load documents from an iterator of paths.
+/// Returns an iterator of doc results.
+pub fn read(paths: impl Iterator<Item = PathBuf>) -> impl DocResults {
+    paths.map(|path| Doc::read(path))
+}
+
+/// Parse JSON documents from stdin as line-separated JSON.
+/// Returns an iterator of doc results.
+pub fn read_stdin() -> impl DocResults {
+    io::stdin()
+        .lock()
+        .lines()
+        .filter_map(Result::ok)
+        .map(|line| match serde_json::from_str(&line) {
+            Ok(doc) => Ok(doc),
+            Err(err) => Err(Error::new(std::io::ErrorKind::Other, err)),
+        })
 }

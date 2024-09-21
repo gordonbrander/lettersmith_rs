@@ -3,6 +3,7 @@ use crate::json::{self, merge};
 use crate::text::{first_sentence, to_slug, truncate, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::io::Result;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash, Default)]
@@ -14,8 +15,8 @@ pub struct Doc {
     pub modified: DateTime<Utc>,
     pub title: String,
     pub content: String,
-    pub meta: json::Value,
     pub template: String,
+    pub meta: json::Value,
 }
 
 impl Doc {
@@ -27,8 +28,8 @@ impl Doc {
         modified: DateTime<Utc>,
         title: impl Into<String>,
         content: impl Into<String>,
-        meta: json::Value,
         template: impl Into<String>,
+        meta: json::Value,
     ) -> Self {
         Doc {
             id_path: id_path.as_ref().to_path_buf(),
@@ -53,7 +54,7 @@ impl Doc {
     }
 
     /// Load a document from a file path.
-    pub fn read(path: impl AsRef<Path>) -> std::io::Result<Self> {
+    pub fn read(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         let metadata = std::fs::metadata(path)?;
         let content = std::fs::read_to_string(path)?;
@@ -67,13 +68,13 @@ impl Doc {
             metadata.modified()?.into(),
             title,
             content,
+            "",
             serde_json::Value::Null,
-            String::new(),
         ))
     }
 
     /// Write the document to its output path.
-    pub fn write(&self, output_dir: impl AsRef<Path>) -> std::io::Result<()> {
+    pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<()> {
         let write_path = output_dir.as_ref().join(&self.output_path);
         write_file_deep(write_path, &self.content)
     }
@@ -140,27 +141,28 @@ impl Doc {
         self
     }
 
-    /// Set template if one hasn't been set already
-    pub fn set_template_if_needed(mut self, template: impl Into<String>) -> Self {
-        if self.template.is_empty() {
-            self.template = template.into();
-        }
-        self
+    // Read template file at path and set the contents as the template of this
+    // doc.
+    pub fn read_and_set_template(self, template_path: impl AsRef<Path>) -> Result<Self> {
+        let template_path = template_path.as_ref();
+        let template_doc = Doc::read(template_path)?;
+        Ok(self.set_template(template_doc.content))
     }
 
     /// Set template based on parent directory name.
     /// Falls back to `default.html` if no parent.
-    pub fn autotemplate(mut self) -> Self {
+    pub fn autotemplate(self) -> Result<Self> {
         if self.template.is_empty() {
-            let template = PathBuf::from(&self.id_path)
+            let template_path = PathBuf::from(&self.id_path)
                 .parent()
                 .and_then(|p| p.file_name())
                 .and_then(|name| name.to_str())
                 .map(|name| format!("{}.html", name))
                 .unwrap_or_else(|| "default.html".to_string());
-            self.template = template;
+            self.read_and_set_template(template_path)
+        } else {
+            Ok(self)
         }
-        self
     }
 
     /// Set output path extension.

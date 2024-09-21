@@ -1,7 +1,7 @@
 use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::json;
-pub use liquid::model;
+pub use liquid::{model, object};
 use std::io::{Error, Result};
 
 /// Implement From for Doc -> liquid::Object.
@@ -40,35 +40,39 @@ pub fn json_to_liquid(value: &json::Value) -> liquid::model::Value {
     }
 }
 
+/// Render liquid template using pre-defined features
+pub fn render(template: &str, context: &liquid::model::Object) -> Result<String> {
+    // Construct the parser
+    let parser = match liquid::ParserBuilder::with_stdlib().build() {
+        Ok(parser) => parser,
+        Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+    };
+
+    // Parse the template
+    let parsed_template = match parser.parse(template) {
+        Ok(template) => template,
+        Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+    };
+
+    parsed_template
+        .render(context)
+        .map_err(|err| Error::new(std::io::ErrorKind::Other, err))
+}
+
 impl Doc {
     /// Render the liquid template with the given data object.
     pub fn render_liquid(self, data: &json::Value) -> Result<Doc> {
-        // Construct the parser
-        let parser = match liquid::ParserBuilder::with_stdlib().build() {
-            Ok(parser) => parser,
-            Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
-        };
-
-        // Parse the template
-        let template = match parser.parse(&self.template) {
-            Ok(template) => template,
-            Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
-        };
-
         // Set up the template data
-        let mut globals = model::Object::new();
-        globals.insert("data".into(), json_to_liquid(&data));
-        globals.insert(
+        let mut context = model::Object::new();
+        context.insert("data".into(), json_to_liquid(&data));
+        context.insert(
             "doc".into(),
             model::Value::Object(model::Object::from(&self)),
         );
-
-        // Render the template
-        let content = match template.render(&globals) {
-            Ok(rendered) => rendered,
+        let content = match render(&self.template, &context) {
+            Ok(content) => content,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
-
         // Set content and return
         Ok(self.set_content(content).set_extension_html())
     }
