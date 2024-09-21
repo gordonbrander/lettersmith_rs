@@ -2,8 +2,10 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::json::{self, json};
 use crate::stub::Stub;
-use crate::text::remove_non_slug_chars;
+use crate::text::{remove_non_slug_chars, to_slug};
+use crate::token_template;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use tap::Pipe;
 
 /// Convert string to tag.
@@ -115,6 +117,42 @@ pub trait TaggedDocs: Docs {
     /// Returns a hashmap of stub lists, indexed by term.
     fn index_by_tag(&mut self) -> HashMap<String, Vec<Stub>> {
         self.index_by_taxonomy("tags")
+    }
+
+    /// Generate taxonomy archive docs for this docs iterator.
+    /// Looks up tags by taxonomy and files stubs by tag under generated archive pages.
+    /// Returns a new docs iterator made up of just the archives generated.
+    fn generate_taxonomy_archives(
+        &mut self,
+        key: &str,
+        template: &str,
+        output_path_template: &str,
+    ) -> impl Docs {
+        let tax_index = self.index_by_taxonomy(key);
+        tax_index.into_iter().map(move |(term, stubs)| {
+            let mut parts = HashMap::new();
+            parts.insert("taxonomy", to_slug(key));
+            parts.insert("term", to_slug(&term));
+            let output_path = token_template::render(output_path_template, &parts);
+            let meta = json!({ "items": stubs });
+            let now = chrono::Utc::now();
+            Doc {
+                id_path: PathBuf::from(&output_path),
+                output_path: PathBuf::from(&output_path),
+                input_path: None,
+                created: now,
+                modified: now,
+                title: term.to_owned(),
+                content: "".to_owned(),
+                template: template.to_owned(),
+                meta,
+            }
+        })
+    }
+
+    /// Generate tag archive docs for this docs iterator.
+    fn generate_tag_archives(&mut self, template: &str, output_path_template: &str) -> impl Docs {
+        self.generate_taxonomy_archives("tags", template, output_path_template)
     }
 }
 
