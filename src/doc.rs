@@ -1,5 +1,6 @@
 use crate::io::write_file_deep;
 use crate::json::{self, merge};
+use crate::text::{first_sentence, truncate, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -100,6 +101,31 @@ impl Doc {
     pub fn set_content(mut self, content: impl Into<String>) -> Self {
         self.content = content.into();
         self
+    }
+
+    /// Summarize doc using either meta summary field, or truncating to
+    /// max 280 chars.
+    pub fn summary_280(&self) -> String {
+        if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
+            str.to_string()
+        } else {
+            truncate_280(&self.content)
+        }
+    }
+
+    /// Summarize doc using either meta summary field, or truncating to
+    /// `max_chars`.
+    pub fn summary(&self, max_chars: usize, suffix: &str) -> String {
+        if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
+            str.to_string()
+        } else {
+            truncate(&self.content, max_chars, suffix)
+        }
+    }
+
+    /// Get first sentence of content
+    pub fn first_sentence(&self) -> String {
+        first_sentence(&self.content)
     }
 
     /// Set template, overwriting whatever was there previously
