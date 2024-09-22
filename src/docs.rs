@@ -9,11 +9,27 @@ use std::path::{Path, PathBuf};
 /// Docs trait is any iterator of Docs
 pub trait Docs: Iterator<Item = Doc> + Sized {
     /// Write docs to file system under output_dir
+    /// Outputs a series of JSON result objects
     fn write(self, output_dir: &Path) {
         for doc in self.into_iter() {
             match doc.write(output_dir) {
-                Ok(_) => println!("Wrote {:?} to {:?}", doc.id_path, doc.output_path),
-                Err(err) => eprintln!("Error writing doc: {}", err),
+                Ok(_) => {
+                    let json = serde_json::json!({
+                        "ok": true,
+                        "value": {
+                            "id_path": doc.id_path,
+                            "output_path": doc.output_path
+                        }
+                    });
+                    println!("{}", json)
+                }
+                Err(err) => eprintln!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": false,
+                        "error": err.to_string()
+                    })
+                ),
             }
         }
     }
