@@ -3,8 +3,11 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 
+use serde_json::json;
+
 /// Filter out errors and log them to stderr.
 /// Returns a new iterator of only the successful values.
+/// Errors are formatted as JSON result objects: `{"ok": false, "error": ""}`.
 pub fn dump_errors_to_stderr<T, E>(
     iter: impl Iterator<Item = Result<T, E>>,
 ) -> impl Iterator<Item = T>
@@ -14,7 +17,8 @@ where
     iter.filter_map(|result| match result {
         Ok(value) => Some(value),
         Err(err) => {
-            eprintln!("Error: {}", err);
+            let msg = json!({"ok": false, "error": err.to_string()});
+            eprintln!("{}", msg);
             None
         }
     })

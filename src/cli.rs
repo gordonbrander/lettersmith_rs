@@ -19,6 +19,10 @@ impl Cli {
     pub fn read_config(&self) -> Result<json::Value> {
         json::read(&self.config)
     }
+
+    pub fn read_config_or_default(&self) -> json::Value {
+        self.read_config().unwrap_or(json::json!({}))
+    }
 }
 
 pub fn parse_args() -> Cli {

@@ -94,7 +94,16 @@ impl Doc {
         let Some(template_path) = &self.template_path else {
             return Ok(self);
         };
-        let template_doc = Doc::read(template_path)?;
+        // Read template and output a helpful error if we can't find it.
+        let template_doc = Doc::read(template_path).map_err(|_| {
+            Error::new(
+                std::io::ErrorKind::NotFound,
+                format!(
+                    "Could not find template at {}",
+                    template_path.to_string_lossy()
+                ),
+            )
+        })?;
         self.render_liquid_using_template_string(&template_doc.content, data)
     }
 }
