@@ -11,6 +11,10 @@ path = "src/bin/ls_load.rs"
 name = "ls_write"
 path = "src/bin/ls_write.rs"
 
+[[bin]]
+name = "ls_blog"
+path = "src/bin/ls_blog.rs"
+
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.17", features = ["derive"] }
