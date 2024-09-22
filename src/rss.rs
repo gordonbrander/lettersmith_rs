@@ -55,11 +55,11 @@ pub trait RssDocs: Docs {
             output_path,
             output_path,
             None::<&Path>,
+            None::<&Path>,
             last_build_date,
             last_build_date,
             title,
             "".to_owned(),
-            RSS_TEMPLATE.to_string(),
             json!({
                 "description": description,
                 "author": author,
@@ -68,7 +68,7 @@ pub trait RssDocs: Docs {
             }),
         );
 
-        rss_doc.render_liquid(&data)
+        rss_doc.render_liquid_using_template_string(RSS_TEMPLATE, &data)
     }
 }
 

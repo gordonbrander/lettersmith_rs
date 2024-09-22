@@ -64,11 +64,11 @@ mod tests {
             id_path: PathBuf::from("test/path"),
             input_path: None,
             output_path: PathBuf::from("output/path"),
+            template_path: None::<PathBuf>,
             created: Utc::now(),
             modified: Utc::now(),
             title: "Test Title".to_string(),
             content: "Test content".to_string(),
-            template: "".to_string(),
             meta: json!({
                 "summary": "Test summary".to_string()
             }),
@@ -90,13 +90,13 @@ mod tests {
             id_path: PathBuf::from("test/path"),
             input_path: None,
             output_path: PathBuf::from("output/path"),
+            template_path: None::<PathBuf>,
             created: Utc::now(),
             modified: Utc::now(),
             title: "Test Title".to_string(),
             content:
                 "This is a test content that should be truncated to 280 characters for the summary."
                     .to_string(),
-            template: "".to_string(),
             meta: json!({}),
         };
 
@@ -112,22 +112,22 @@ mod tests {
                 id_path: PathBuf::from("test/path1"),
                 input_path: None,
                 output_path: PathBuf::from("output/path1"),
+                template_path: None::<PathBuf>,
                 created: Utc::now(),
                 modified: Utc::now(),
                 title: "Test Title 1".to_string(),
                 content: "Test content 1".to_string(),
-                template: "".to_string(),
                 meta: json!({}),
             },
             Doc {
                 id_path: PathBuf::from("test/path2"),
                 input_path: None,
                 output_path: PathBuf::from("output/path2"),
+                template_path: None::<PathBuf>,
                 created: Utc::now(),
                 modified: Utc::now(),
                 title: "Test Title 2".to_string(),
                 content: "Test content 2".to_string(),
-                template: "".to_string(),
                 meta: json!({}),
             },
         ];

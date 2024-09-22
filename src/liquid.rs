@@ -60,8 +60,16 @@ pub fn render(template: &str, context: &liquid::model::Object) -> Result<String>
 }
 
 impl Doc {
-    /// Render the liquid template with the given data object.
-    pub fn render_liquid(self, data: &json::Value) -> Result<Doc> {
+    /// Render doc using a given template string,
+    /// Ignores the template at doc template path and uses string instead.
+    ///
+    /// The template is provided with `doc` and the additional `data` object
+    /// you pass in.
+    pub fn render_liquid_using_template_string(
+        self,
+        template: &str,
+        data: &json::Value,
+    ) -> Result<Doc> {
         // Set up the template data
         let mut context = model::Object::new();
         context.insert("data".into(), json_to_liquid(&data));
@@ -69,12 +77,25 @@ impl Doc {
             "doc".into(),
             model::Value::Object(model::Object::from(&self)),
         );
-        let content = match render(&self.template, &context) {
+        let content = match render(template, &context) {
             Ok(content) => content,
             Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
         };
         // Set content and return
         Ok(self.set_content(content).set_extension_html())
+    }
+
+    /// Render the doc using the template at `template_path` and Liquid
+    /// template system.
+    ///
+    /// The template is provided with `doc` and the additional `data` object
+    /// you pass in.
+    pub fn render_liquid(self, data: &json::Value) -> Result<Doc> {
+        let Some(template_path) = &self.template_path else {
+            return Ok(self);
+        };
+        let template_doc = Doc::read(template_path)?;
+        self.render_liquid_using_template_string(&template_doc.content, data)
     }
 }
 
@@ -91,6 +112,7 @@ mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
     use serde_json::json;
+    use std::path::PathBuf;
 
     #[test]
     fn test_json_to_liquid() {
@@ -142,7 +164,7 @@ mod tests {
             modified: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
             title: "Test Document".to_string(),
             content: "Test content".to_string(),
-            template: "".to_string(),
+            template_path: None,
             meta: json!({"key": "value"}),
         };
 
@@ -182,17 +204,19 @@ mod tests {
             id_path: "test/doc".into(),
             output_path: "test/doc".into(),
             input_path: None,
+            template_path: None::<PathBuf>,
             created: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
             modified: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
             title: "Test Document".to_string(),
             content: "Original content".to_string(),
-            template: "{{ data.message }} - {{ doc.title }}".to_string(),
             meta: json!({"key": "value"}),
         };
 
         let data = json!({"message": "Hello, World!"});
 
-        let rendered_doc = doc.render_liquid(&data).unwrap();
+        let rendered_doc = doc
+            .render_liquid_using_template_string("{{ data.message }} - {{ doc.title }}", &data)
+            .unwrap();
 
         assert_eq!(rendered_doc.content, "Hello, World! - Test Document");
     }

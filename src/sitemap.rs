@@ -29,11 +29,11 @@ pub trait SitemapDocs: Docs {
             id_path: PathBuf::from(&output_path),
             output_path: PathBuf::from(&output_path),
             input_path: None,
+            template_path: None::<PathBuf>,
             created: now,
             modified: now,
             title: "".to_owned(),
             content: "".to_owned(),
-            template: SITEMAP_TEMPLATE.to_owned(),
             meta: json!({}),
         };
 
@@ -42,7 +42,7 @@ pub trait SitemapDocs: Docs {
             "sitemap_items": stubs_50k
         });
 
-        sitemap.render_liquid(&data)
+        sitemap.render_liquid_using_template_string(SITEMAP_TEMPLATE, &data)
     }
 }
 

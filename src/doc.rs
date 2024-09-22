@@ -11,11 +11,11 @@ pub struct Doc {
     pub id_path: PathBuf,
     pub output_path: PathBuf,
     pub input_path: Option<PathBuf>,
+    pub template_path: Option<PathBuf>,
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     pub title: String,
     pub content: String,
-    pub template: String,
     pub meta: json::Value,
 }
 
@@ -24,23 +24,23 @@ impl Doc {
         id_path: impl AsRef<Path>,
         output_path: impl AsRef<Path>,
         input_path: Option<impl AsRef<Path>>,
+        template_path: Option<impl AsRef<Path>>,
         created: DateTime<Utc>,
         modified: DateTime<Utc>,
         title: impl Into<String>,
         content: impl Into<String>,
-        template: impl Into<String>,
         meta: json::Value,
     ) -> Self {
         Doc {
             id_path: id_path.as_ref().to_path_buf(),
             output_path: output_path.as_ref().to_path_buf(),
             input_path: input_path.map(|p| p.as_ref().to_path_buf()),
+            template_path: template_path.map(|p| p.as_ref().to_path_buf()),
             created,
             modified,
             title: title.into(),
             content: content.into(),
             meta,
-            template: template.into(),
         }
     }
 
@@ -64,11 +64,11 @@ impl Doc {
             path,
             path,
             Some(path),
+            None::<PathBuf>,
             metadata.created()?.into(),
             metadata.modified()?.into(),
             title,
             content,
-            "",
             serde_json::Value::Null,
         ))
     }
@@ -136,32 +136,24 @@ impl Doc {
     }
 
     /// Set template, overwriting whatever was there previously
-    pub fn set_template(mut self, template: impl Into<String>) -> Self {
-        self.template = template.into();
+    pub fn set_template(mut self, template_path: impl Into<PathBuf>) -> Self {
+        self.template_path = Some(template_path.into());
         self
-    }
-
-    // Read template file at path and set the contents as the template of this
-    // doc.
-    pub fn read_and_set_template(self, template_path: impl AsRef<Path>) -> Result<Self> {
-        let template_path = template_path.as_ref();
-        let template_doc = Doc::read(template_path)?;
-        Ok(self.set_template(template_doc.content))
     }
 
     /// Set template based on parent directory name.
     /// Falls back to `default.html` if no parent.
-    pub fn autotemplate(self) -> Result<Self> {
-        if self.template.is_empty() {
+    pub fn autotemplate(self) -> Self {
+        if self.template_path.is_none() {
             let template_path = PathBuf::from(&self.id_path)
                 .parent()
                 .and_then(|p| p.file_name())
                 .and_then(|name| name.to_str())
                 .map(|name| format!("{}.html", name))
                 .unwrap_or_else(|| "default.html".to_string());
-            self.read_and_set_template(template_path)
+            self.set_template(PathBuf::from(template_path))
         } else {
-            Ok(self)
+            self
         }
     }
 
@@ -215,8 +207,8 @@ impl Doc {
         if let Some(json::Value::String(permalink)) = self.meta.get("permalink") {
             self.output_path = PathBuf::from(permalink);
         }
-        if let Some(json::Value::String(template)) = self.meta.get("template") {
-            self.template = template.clone();
+        if let Some(json::Value::String(template_path)) = self.meta.get("template") {
+            self.template_path = Some(PathBuf::from(template_path));
         }
         self
     }

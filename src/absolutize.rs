@@ -77,11 +77,11 @@ mod tests {
             id_path: PathBuf::from("test.md"),
             input_path: None,
             output_path: PathBuf::from("test.html"),
+            template_path: None::<PathBuf>,
             created: Utc::now(),
             modified: Utc::now(),
             title: "Test".to_string(),
             content: "<a href='/relative'>Link</a>".to_string(),
-            template: "".to_string(),
             meta: json!({}),
         };
         let base_url = "https://example.com";

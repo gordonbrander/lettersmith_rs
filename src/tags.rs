@@ -125,8 +125,8 @@ pub trait TaggedDocs: Docs {
     fn generate_taxonomy_archives(
         self,
         key: &str,
-        template: &str,
         output_path_template: &str,
+        template_path: Option<PathBuf>,
     ) -> impl Docs {
         let tax_index = self.index_by_taxonomy(key);
         tax_index.into_iter().map(move |(term, stubs)| {
@@ -140,19 +140,23 @@ pub trait TaggedDocs: Docs {
                 id_path: PathBuf::from(&output_path),
                 output_path: PathBuf::from(&output_path),
                 input_path: None,
+                template_path: template_path.clone(),
                 created: now,
                 modified: now,
                 title: term.to_owned(),
                 content: "".to_owned(),
-                template: template.to_owned(),
                 meta,
             }
         })
     }
 
     /// Generate tag archive docs for this docs iterator.
-    fn generate_tag_archives(self, template: &str, output_path_template: &str) -> impl Docs {
-        self.generate_taxonomy_archives("tags", template, output_path_template)
+    fn generate_tag_archives(
+        self,
+        output_path_template: &str,
+        template_path: Option<PathBuf>,
+    ) -> impl Docs {
+        self.generate_taxonomy_archives("tags", output_path_template, template_path)
     }
 }
 
