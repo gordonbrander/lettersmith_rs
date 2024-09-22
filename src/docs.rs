@@ -117,9 +117,9 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
     }
 
     /// Set template
-    fn set_template(self, template: impl Into<String>) -> impl Docs {
-        let template_string = template.into();
-        self.map(move |doc| doc.set_template(template_string.clone()))
+    fn set_template(self, template_path: impl Into<PathBuf>) -> impl Docs {
+        let template_path: PathBuf = template_path.into();
+        self.map(move |doc| doc.set_template(&template_path))
     }
 
     /// Set template based on parent directory name.
