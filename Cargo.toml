@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "ls_load"
-path = "src/bin/ls_load.rs"
+name = "ls_read"
+path = "src/bin/ls_read.rs"
 
 [[bin]]
 name = "ls_write"
