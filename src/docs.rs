@@ -124,8 +124,9 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
 
     /// Set template based on parent directory name.
     /// Falls back to default.html if no parent.
-    fn autotemplate(self, template_dir: &Path) -> impl Docs {
-        self.map(|doc| doc.autotemplate(template_dir))
+    fn autotemplate(self, template_dir: impl AsRef<Path>) -> impl Docs {
+        let template_dir = template_dir.as_ref().to_owned();
+        self.map(move |doc| doc.autotemplate(&template_dir))
     }
 }
 

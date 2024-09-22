@@ -5,7 +5,7 @@ impl Doc {
     pub fn blog_post(self) -> Doc {
         self.parse_frontmatter()
             .uplift_meta()
-            .autotemplate()
+            .autotemplate("templates")
             .render_markdown()
             .set_extension("html")
     }

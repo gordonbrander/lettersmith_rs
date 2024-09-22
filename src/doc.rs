@@ -143,7 +143,7 @@ impl Doc {
 
     /// Set template based on parent directory name.
     /// Falls back to `default.html` if no parent.
-    pub fn autotemplate(self, template_dir: &Path) -> Self {
+    pub fn autotemplate(self, template_dir: impl AsRef<Path>) -> Self {
         if self.template_path.is_none() {
             let file_name: String = self
                 .id_path
@@ -152,7 +152,7 @@ impl Doc {
                 .and_then(|name| name.to_str())
                 .map(|name| format!("{}.html", name).to_string())
                 .unwrap_or_else(|| "default.html".to_string());
-            self.set_template(template_dir.join(file_name))
+            self.set_template(template_dir.as_ref().join(file_name))
         } else {
             self
         }
