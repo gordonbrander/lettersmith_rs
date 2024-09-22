@@ -213,16 +213,4 @@ impl Doc {
         }
         self
     }
-
-    /// Parse JSON frontmatter
-    pub fn parse_frontmatter(mut self) -> Self {
-        if let Some((frontmatter, content)) = self.content.split_once("---\n") {
-            // Frontmatter that can't be parsed is ignored.
-            if let Ok(meta) = serde_json::from_str(frontmatter) {
-                self.meta = meta;
-            }
-            self.content = content.to_string();
-        }
-        self
-    }
 }

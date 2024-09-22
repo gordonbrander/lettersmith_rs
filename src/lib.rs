@@ -4,6 +4,7 @@ pub mod blog;
 pub mod cli;
 pub mod doc;
 pub mod docs;
+pub mod frontmatter;
 pub mod html;
 pub mod io;
 pub mod json;
