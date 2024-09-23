@@ -30,6 +30,12 @@ impl Doc {
         self.content = content;
         self
     }
+
+    /// Parse YAML frontmatter and assign to `meta`, and set certain blessed
+    /// meta fields to doc fields.
+    pub fn parse_and_uplift_frontmatter(self) -> Self {
+        self.parse_frontmatter().uplift_meta()
+    }
 }
 
 #[cfg(test)]
