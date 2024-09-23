@@ -1,9 +1,9 @@
+use crate::error::Error;
 use crate::io::write_file_deep;
 use crate::json::{self, merge};
 use crate::text::{first_sentence, to_slug, truncate, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::io::Result;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash, Default)]
@@ -54,7 +54,7 @@ impl Doc {
     }
 
     /// Load a document from a file path.
-    pub fn read(path: impl AsRef<Path>) -> Result<Self> {
+    pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
         let path = path.as_ref();
         let metadata = std::fs::metadata(path)?;
         let content = std::fs::read_to_string(path)?;
@@ -74,7 +74,7 @@ impl Doc {
     }
 
     /// Write the document to its output path.
-    pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<()> {
+    pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<(), std::io::Error> {
         let write_path = output_dir.as_ref().join(&self.output_path);
         write_file_deep(write_path, &self.content)
     }

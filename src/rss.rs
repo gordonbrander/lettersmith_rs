@@ -1,6 +1,5 @@
-use crate::{doc::Doc, docs::Docs, json::json};
+use crate::{doc::Doc, docs::Docs, error::Error, json::json};
 use chrono::{DateTime, Utc};
-use std::io::Result;
 use std::path::Path;
 
 const RSS_TEMPLATE: &str = r#"
@@ -43,7 +42,7 @@ pub trait RssDocs: Docs {
         author: &str,
         output_path: &str,
         last_build_date: Option<DateTime<Utc>>,
-    ) -> Result<Doc> {
+    ) -> Result<Doc, Error> {
         let last_build_date = last_build_date.unwrap_or_else(|| Utc::now());
         let recent: Vec<Doc> = docs.most_recent(24).collect();
 

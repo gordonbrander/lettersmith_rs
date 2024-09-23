@@ -1,9 +1,9 @@
 use crate::doc::Doc;
+use crate::error::Error;
 use crate::io::dump_errors_to_stderr;
 use serde_json;
 use std::collections::HashSet;
 use std::io::{self, BufRead};
-use std::io::{Error, Result};
 use std::path::{Path, PathBuf};
 
 /// Docs trait is any iterator of Docs
@@ -149,7 +149,7 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
 /// Blanket-implement DocIterator for any iterator of docs
 impl<I> Docs for I where I: Iterator<Item = Doc> {}
 
-pub trait DocResults: Iterator<Item = Result<Doc>> + Sized {
+pub trait DocResults: Iterator<Item = Result<Doc, Error>> + Sized {
     /// Dump errors in result to stderr
     /// Returns a DocIterator
     fn dump_errors_to_stderr(self) -> impl Docs {
@@ -157,7 +157,7 @@ pub trait DocResults: Iterator<Item = Result<Doc>> + Sized {
     }
 }
 
-impl<I> DocResults for I where I: Iterator<Item = Result<Doc>> {}
+impl<I> DocResults for I where I: Iterator<Item = Result<Doc, Error>> {}
 
 /// Load documents from an iterator of paths.
 /// Returns an iterator of doc results.
@@ -174,6 +174,6 @@ pub fn read_stdin() -> impl DocResults {
         .filter_map(Result::ok)
         .map(|line| match serde_json::from_str(&line) {
             Ok(doc) => Ok(doc),
-            Err(err) => Err(Error::new(std::io::ErrorKind::Other, err)),
+            Err(err) => Err(Error::from_error(err)),
         })
 }

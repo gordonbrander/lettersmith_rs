@@ -1,9 +1,9 @@
 use crate::doc::Doc;
 use crate::docs::Docs;
+use crate::error::Error;
 use crate::json::json;
 use crate::stub::{Stub, StubDocs};
 use chrono::Utc;
-use std::io::Result;
 use std::path::PathBuf;
 
 const SITEMAP_TEMPLATE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -18,7 +18,7 @@ const SITEMAP_TEMPLATE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 
 pub trait SitemapDocs: Docs {
     /// Generate a sitemap doc given an iterator of docs
-    fn sitemap(self, base_url: &str) -> Result<Doc> {
+    fn sitemap(self, base_url: &str) -> Result<Doc, Error> {
         // The sitemap spec limits each sitemap to 50k entries.
         // https://www.sitemaps.org/protocol.html
         let stubs_50k: Vec<Stub> = self.take(50000).stubs().collect();

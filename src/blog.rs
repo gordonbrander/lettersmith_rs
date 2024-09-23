@@ -1,10 +1,10 @@
 use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
+use crate::error::Error;
 use crate::json;
-use std::io::Result;
 
 impl Doc {
-    pub fn blog_post(self, data: &json::Value) -> Result<Doc> {
+    pub fn blog_post(self, data: &json::Value) -> Result<Doc, Error> {
         self.parse_frontmatter()
             .uplift_meta()
             .autotemplate("templates")

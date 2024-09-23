@@ -1,8 +1,7 @@
-use crate::doc::Doc;
-use crate::docs::Docs;
+use crate::docs::{DocResults, Docs};
 use crate::json;
+use crate::{doc::Doc, error::Error};
 pub use liquid::{model, object};
-use std::io::{Error, Result};
 
 /// Implement From for Doc -> liquid::Object.
 impl From<&Doc> for model::Object {
@@ -41,22 +40,22 @@ pub fn json_to_liquid(value: &json::Value) -> liquid::model::Value {
 }
 
 /// Render liquid template using pre-defined features
-pub fn render(template: &str, context: &liquid::model::Object) -> Result<String> {
+pub fn render(template: &str, context: &liquid::model::Object) -> Result<String, Error> {
     // Construct the parser
     let parser = match liquid::ParserBuilder::with_stdlib().build() {
         Ok(parser) => parser,
-        Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+        Err(err) => return Err(Error::from_error(err)),
     };
 
     // Parse the template
     let parsed_template = match parser.parse(template) {
         Ok(template) => template,
-        Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+        Err(err) => return Err(Error::from_error(err)),
     };
 
     parsed_template
         .render(context)
-        .map_err(|err| Error::new(std::io::ErrorKind::Other, err))
+        .map_err(|err| Error::from_error(err))
 }
 
 impl Doc {
@@ -69,7 +68,7 @@ impl Doc {
         self,
         template: &str,
         data: &json::Value,
-    ) -> Result<Doc> {
+    ) -> Result<Doc, Error> {
         // Set up the template data
         let mut context = model::Object::new();
         context.insert("data".into(), json_to_liquid(&data));
@@ -79,7 +78,7 @@ impl Doc {
         );
         let content = match render(template, &context) {
             Ok(content) => content,
-            Err(err) => return Err(Error::new(std::io::ErrorKind::Other, err)),
+            Err(err) => return Err(Error::from_error(err)),
         };
         // Set content and return
         Ok(self.set_content(content).set_extension_html())
@@ -90,26 +89,23 @@ impl Doc {
     ///
     /// The template is provided with `doc` and the additional `data` object
     /// you pass in.
-    pub fn render_liquid(self, data: &json::Value) -> Result<Doc> {
+    pub fn render_liquid(self, data: &json::Value) -> Result<Doc, Error> {
         let Some(template_path) = &self.template_path else {
             return Ok(self);
         };
         // Read template and output a helpful error if we can't find it.
         let template_doc = Doc::read(template_path).map_err(|_| {
-            Error::new(
-                std::io::ErrorKind::NotFound,
-                format!(
-                    "Could not find template at {}",
-                    template_path.to_string_lossy()
-                ),
-            )
+            Error::new(format!(
+                "Could not find template at {}",
+                template_path.to_string_lossy()
+            ))
         })?;
         self.render_liquid_using_template_string(&template_doc.content, data)
     }
 }
 
 pub trait LiquidDocs: Docs {
-    fn render_liquid(self, data: json::Value) -> impl Iterator<Item = Result<Doc>> {
+    fn render_liquid(self, data: json::Value) -> impl DocResults {
         self.map(move |doc| doc.render_liquid(&data))
     }
 }
