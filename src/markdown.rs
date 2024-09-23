@@ -18,23 +18,13 @@ impl Doc {
     /// Render content to markdown
     pub fn render_markdown(mut self) -> Self {
         self.content = render_markdown(&self.content);
-        self
-    }
-
-    /// Strip markdown from text
-    pub fn strip_markdown(mut self) -> Self {
-        self.content = strip_markdown(&&self.content);
-        self
+        self.set_extension_html()
     }
 }
 
 pub trait MarkdownDocs: Docs {
     fn render_markdown(self) -> impl Docs {
         self.map(|doc| doc.render_markdown())
-    }
-
-    fn strip_markdown(self) -> impl Docs {
-        self.map(|doc| doc.strip_markdown())
     }
 }
 
@@ -67,13 +57,6 @@ mod tests {
     }
 
     #[test]
-    fn test_doc_strip_markdown() {
-        let doc = Doc::draft("test.md").set_content("# Test");
-        let stripped = doc.strip_markdown();
-        assert_eq!(stripped.content, "Test\n");
-    }
-
-    #[test]
     fn test_markdown_docs_render() {
         let docs = vec![
             Doc::draft("foo.md").set_content("# One"),
@@ -82,16 +65,5 @@ mod tests {
         let rendered: Vec<Doc> = docs.into_iter().render_markdown().collect();
         assert_eq!(rendered[0].content, "<h1>One</h1>\n");
         assert_eq!(rendered[1].content, "<h2>Two</h2>\n");
-    }
-
-    #[test]
-    fn test_markdown_docs_strip() {
-        let docs = vec![
-            Doc::draft("test.md").set_content("# One"),
-            Doc::draft("test.md").set_content("## Two"),
-        ];
-        let stripped: Vec<Doc> = docs.into_iter().strip_markdown().collect();
-        assert_eq!(stripped[0].content, "One\n");
-        assert_eq!(stripped[1].content, "Two\n");
     }
 }

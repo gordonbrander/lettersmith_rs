@@ -4,19 +4,19 @@ use crate::error::Error;
 use crate::json;
 
 impl Doc {
-    pub fn blog_post(self, data: &json::Value) -> Result<Doc, Error> {
+    pub fn blog_post(self, base_url: &str, data: &json::Value) -> Result<Doc, Error> {
         self.parse_frontmatter()
             .uplift_meta()
             .autotemplate("templates")
             .render_markdown()
-            .set_extension("html")
+            .absolutize_urls(base_url)
             .render_liquid(&data)
     }
 }
 
 pub trait BlogDocs: Docs {
-    fn blog_post(self, data: &json::Value) -> impl DocResults {
-        self.map(|doc| doc.blog_post(data))
+    fn blog_post(self, base_url: &str, data: &json::Value) -> impl DocResults {
+        self.map(|doc| doc.blog_post(base_url, data))
     }
 }
 
