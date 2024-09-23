@@ -1,33 +1,39 @@
+use crate::config::Config;
 use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
-use crate::json;
+use crate::permalink::PermalinkConfig;
 
 impl Doc {
-    fn markdown_doc(self, base_url: &str, data: &json::Value) -> Result<Doc, Error> {
+    fn markdown_doc(self, config: &Config) -> Result<Doc, Error> {
+        let base_url: &str = &config.site_url.as_str();
         self.parse_and_uplift_frontmatter()
             .autotemplate("templates")
             .render_markdown()
             .absolutize_urls(base_url)
-            .render_liquid(&data)
+            .render_liquid(&config.data)
     }
 
-    pub fn markdown_post(self, base_url: &str, data: &json::Value) -> Result<Doc, Error> {
-        Ok(self.markdown_doc(base_url, data)?.set_blog_permalink())
+    pub fn markdown_post(self, config: &Config) -> Result<Doc, Error> {
+        let doc = self.markdown_doc(config)?;
+        let plugin: PermalinkConfig = config.get_plugin_config("permalink")?;
+        Ok(doc.set_permalink(plugin.post))
     }
 
-    pub fn markdown_page(self, base_url: &str, data: &json::Value) -> Result<Doc, Error> {
-        Ok(self.markdown_doc(base_url, data)?.set_page_permalink())
+    pub fn markdown_page(self, config: &Config) -> Result<Doc, Error> {
+        let doc = self.markdown_doc(config)?;
+        let plugin: PermalinkConfig = config.get_plugin_config("permalink")?;
+        Ok(doc.set_permalink(plugin.page))
     }
 }
 
 pub trait BlogDocs: Docs {
-    fn markdown_post(self, base_url: &str, data: &json::Value) -> impl DocResults {
-        self.map(|doc| doc.markdown_post(base_url, data))
+    fn markdown_post(self, config: &Config) -> impl DocResults {
+        self.map(|doc| doc.markdown_post(config))
     }
 
-    fn markdown_page(self, base_url: &str, data: &json::Value) -> impl DocResults {
-        self.map(|doc| doc.markdown_page(base_url, data))
+    fn markdown_page(self, config: &Config) -> impl DocResults {
+        self.map(|doc| doc.markdown_page(config))
     }
 }
 

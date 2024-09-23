@@ -1,4 +1,5 @@
 use std::error::Error;
+pub use std::fs::read_to_string;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;

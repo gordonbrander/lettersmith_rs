@@ -2,7 +2,25 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::text::to_slug;
 use crate::token_template;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+/// Config for permalinks in plugins section of lettersmith config file.
+#[derive(Serialize, Deserialize)]
+pub struct PermalinkConfig {
+    #[serde(default = "default_post_permalink")]
+    pub post: String,
+    #[serde(default = "default_page_permalink")]
+    pub page: String,
+}
+
+fn default_post_permalink() -> String {
+    "{yyyy}/{mm}/{dd}/{slug}/index.html".to_string()
+}
+
+fn default_page_permalink() -> String {
+    "{parents}/{slug}/index.html".to_string()
+}
 
 impl Doc {
     /// Read permalink template parts from a document.

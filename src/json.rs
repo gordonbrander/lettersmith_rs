@@ -1,3 +1,5 @@
+pub use serde_json::from_str;
+pub use serde_json::from_value;
 pub use serde_json::json;
 pub use serde_json::Value;
 use std::fs::File;

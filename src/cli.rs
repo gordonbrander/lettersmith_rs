@@ -1,4 +1,4 @@
-use crate::json;
+use crate::config::Config;
 pub use clap::Parser;
 use std::io::Result;
 use std::path::PathBuf;
@@ -16,12 +16,8 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn read_config(&self) -> Result<json::Value> {
-        json::read(&self.config)
-    }
-
-    pub fn read_config_or_default(&self) -> json::Value {
-        self.read_config().unwrap_or(json::json!({}))
+    pub fn read_config(&self) -> Result<Config> {
+        Config::read(&self.config)
     }
 }
 

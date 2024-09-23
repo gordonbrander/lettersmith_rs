@@ -2,6 +2,7 @@ pub use tap::pipe;
 pub mod absolutize;
 pub mod blog;
 pub mod cli;
+pub mod config;
 pub mod doc;
 pub mod docs;
 pub mod error;
@@ -19,9 +20,3 @@ pub mod tags;
 pub mod text;
 pub mod token_template;
 pub mod wikilink;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {}
-}
