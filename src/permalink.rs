@@ -1,5 +1,6 @@
 use crate::doc::Doc;
 use crate::docs::Docs;
+use crate::text::to_slug;
 use crate::token_template;
 use std::collections::HashMap;
 
@@ -8,6 +9,7 @@ impl Doc {
     pub fn get_permalink_template_parts(&self) -> Option<HashMap<&str, String>> {
         let name = self.id_path.file_name()?.to_string_lossy().into_owned();
         let stem = self.id_path.file_stem()?.to_string_lossy().into_owned();
+        let slug = to_slug(&stem);
         let ext = self.id_path.extension()?.to_string_lossy().into_owned();
         let parents = self.id_path.parent()?.to_string_lossy().into_owned();
         let parent = self
@@ -21,10 +23,15 @@ impl Doc {
         let mm = self.created.format("%m").to_string();
         let dd = self.created.format("%d").to_string();
         let mut map = HashMap::new();
+        // Name including extension
         map.insert("name", name);
+        // Name excluding extension
         map.insert("stem", stem);
+        map.insert("slug", slug);
         map.insert("ext", ext);
+        // All parents
         map.insert("parents", parents);
+        // Just the closest parent
         map.insert("parent", parent);
         map.insert("yyyy", yyyy);
         map.insert("yy", yy);
@@ -39,6 +46,14 @@ impl Doc {
         let output_path = token_template::render(permalink_template, &parts);
         self.set_output_path(output_path)
     }
+
+    pub fn blog_permalink(self) -> Self {
+        self.permalink("{yyyy}/{mm}/{dd}/{slug}/index.html")
+    }
+
+    pub fn page_permalink(self) -> Self {
+        self.permalink("{parents}/{slug}/index.html")
+    }
 }
 
 pub trait PermalinkDocs: Docs {
@@ -49,11 +64,11 @@ pub trait PermalinkDocs: Docs {
     }
 
     fn blog_permalink(self) -> impl Docs {
-        self.permalink("{yyyy}/{mm}/{dd}/{stem}/index.html")
+        self.map(|doc| doc.blog_permalink())
     }
 
     fn page_permalink(self) -> impl Docs {
-        self.permalink("{parents}/{stem}/index.html")
+        self.map(|doc| doc.page_permalink())
     }
 }
 

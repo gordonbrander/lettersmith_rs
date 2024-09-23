@@ -5,11 +5,11 @@ use crate::json;
 
 impl Doc {
     pub fn blog_post(self, base_url: &str, data: &json::Value) -> Result<Doc, Error> {
-        self.parse_frontmatter()
-            .uplift_meta()
+        self.parse_and_uplift_frontmatter()
             .autotemplate("templates")
             .render_markdown()
             .absolutize_urls(base_url)
+            .blog_permalink()
             .render_liquid(&data)
     }
 }
