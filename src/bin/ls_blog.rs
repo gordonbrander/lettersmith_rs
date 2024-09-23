@@ -7,7 +7,7 @@ fn main() {
     let base_url = config["base_url"].as_str().unwrap_or("/");
     docs::read_stdin()
         .dump_errors_to_stderr()
-        .blog_post(base_url, &config)
+        .markdown_post(base_url, &config)
         .dump_errors_to_stderr()
         .write_stdio();
 }

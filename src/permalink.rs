@@ -41,39 +41,39 @@ impl Doc {
         Some(map)
     }
 
-    /// Set doc permalink (output path) using a template
-    pub fn permalink(self, permalink_template: impl Into<String>) -> Self {
+    /// Set doc permalink (`output_path`) using a template
+    pub fn set_permalink(self, permalink_template: impl Into<String>) -> Self {
         let parts = self.get_permalink_template_parts().unwrap_or_default();
         let output_path = token_template::render(permalink_template, &parts);
         self.set_output_path(output_path)
     }
 
     /// Set blog-style permalink (`yyyy/mm/dd/slug/index.html`)
-    pub fn blog_permalink(self) -> Self {
-        self.permalink("{yyyy}/{mm}/{dd}/{slug}/index.html")
+    pub fn set_blog_permalink(self) -> Self {
+        self.set_permalink("{yyyy}/{mm}/{dd}/{slug}/index.html")
     }
 
     /// Set page-style permalink (`parent/directories/slug/index.html`)
-    pub fn page_permalink(self) -> Self {
-        self.permalink("{parents}/{slug}/index.html")
+    pub fn set_page_permalink(self) -> Self {
+        self.set_permalink("{parents}/{slug}/index.html")
     }
 }
 
 pub trait PermalinkDocs: Docs {
     /// Set doc permalink (output path) using a template
-    fn permalink(self, permalink_template: impl Into<String>) -> impl Docs {
+    fn set_permalink(self, permalink_template: impl Into<String>) -> impl Docs {
         let permalink_template: String = permalink_template.into();
-        self.map(move |doc| doc.permalink(&permalink_template))
+        self.map(move |doc| doc.set_permalink(&permalink_template))
     }
 
     /// Set blog-style permalink (`yyyy/mm/dd/slug/index.html`)
-    fn blog_permalink(self) -> impl Docs {
-        self.map(|doc| doc.blog_permalink())
+    fn set_blog_permalink(self) -> impl Docs {
+        self.map(|doc| doc.set_blog_permalink())
     }
 
     /// Set page-style permalink (`parent/directories/slug/index.html`)
-    fn page_permalink(self) -> impl Docs {
-        self.map(|doc| doc.page_permalink())
+    fn set_page_permalink(self) -> impl Docs {
+        self.map(|doc| doc.set_page_permalink())
     }
 }
 
@@ -115,7 +115,7 @@ mod tests {
             ..Default::default()
         };
 
-        let permalink_doc = doc.permalink("{yyyy}/{mm}/{dd}/{stem}/index.html");
+        let permalink_doc = doc.set_permalink("{yyyy}/{mm}/{dd}/{stem}/index.html");
         assert_eq!(
             permalink_doc.output_path,
             PathBuf::from("2023/05/15/test_file/index.html")
