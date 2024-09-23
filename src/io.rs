@@ -17,8 +17,7 @@ where
     iter.filter_map(|result| match result {
         Ok(value) => Some(value),
         Err(err) => {
-            let msg = json!({"ok": false, "error": err.to_string()});
-            eprintln!("{}", msg);
+            eprintln!("{}", json!({"ok": false, "error": err.to_string()}));
             None
         }
     })

@@ -96,7 +96,7 @@ impl Doc {
         // Read template and output a helpful error if we can't find it.
         let template_doc = Doc::read(template_path).map_err(|_| {
             Error::new(format!(
-                "Could not find template at {}",
+                "render_liquid: could not find template at {}",
                 template_path.to_string_lossy()
             ))
         })?;

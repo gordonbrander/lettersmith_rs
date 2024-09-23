@@ -17,6 +17,7 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
                     let json = serde_json::json!({
                         "ok": true,
                         "value": {
+                            "msg": "Wrote file",
                             "id_path": doc.id_path,
                             "output_path": doc.output_path
                         }
@@ -174,6 +175,6 @@ pub fn read_stdin() -> impl DocResults {
         .filter_map(Result::ok)
         .map(|line| match serde_json::from_str(&line) {
             Ok(doc) => Ok(doc),
-            Err(err) => Err(Error::from_error(err)),
+            Err(err) => Err(Error::from(err)),
         })
 }
