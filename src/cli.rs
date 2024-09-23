@@ -1,6 +1,6 @@
 use crate::config::Config;
+use crate::error::Error;
 pub use clap::Parser;
-use std::io::Result;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -16,7 +16,7 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn read_config(&self) -> Result<Config> {
+    pub fn read_config(&self) -> Result<Config, Error> {
         Config::read(&self.config)
     }
 }

@@ -1,6 +1,7 @@
+use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
+use crate::error::{Error, ErrorKind};
 use crate::json;
-use crate::{doc::Doc, error::Error};
 pub use liquid::{model, object};
 
 /// Implement From for Doc -> liquid::Object.
@@ -44,18 +45,31 @@ pub fn render(template: &str, context: &liquid::model::Object) -> Result<String,
     // Construct the parser
     let parser = match liquid::ParserBuilder::with_stdlib().build() {
         Ok(parser) => parser,
-        Err(err) => return Err(Error::from_error(err)),
+        Err(err) => {
+            return Err(Error::new(
+                ErrorKind::Liquid(err),
+                "Unable to build Liquid parser",
+            ))
+        }
     };
 
     // Parse the template
     let parsed_template = match parser.parse(template) {
         Ok(template) => template,
-        Err(err) => return Err(Error::from_error(err)),
+        Err(err) => {
+            return Err(Error::new(
+                ErrorKind::Liquid(err),
+                format!("Unable to parse template {}", template),
+            ))
+        }
     };
 
-    parsed_template
-        .render(context)
-        .map_err(|err| Error::from_error(err))
+    parsed_template.render(context).map_err(|err| {
+        Error::new(
+            ErrorKind::Liquid(err),
+            format!("Unable to render template {}", template),
+        )
+    })
 }
 
 impl Doc {
@@ -76,10 +90,7 @@ impl Doc {
             "doc".into(),
             model::Value::Object(model::Object::from(&self)),
         );
-        let content = match render(template, &context) {
-            Ok(content) => content,
-            Err(err) => return Err(Error::from_error(err)),
-        };
+        let content = render(template, &context)?;
         // Set content and return
         Ok(self.set_content(content).set_extension_html())
     }
@@ -94,11 +105,14 @@ impl Doc {
             return Ok(self);
         };
         // Read template and output a helpful error if we can't find it.
-        let template_doc = Doc::read(template_path).map_err(|_| {
-            Error::new(format!(
-                "render_liquid: could not find template at {}",
-                template_path.to_string_lossy()
-            ))
+        let template_doc = Doc::read(template_path).map_err(|err| {
+            Error::new(
+                err.kind,
+                format!(
+                    "render_liquid: could not find template at {}",
+                    template_path.to_string_lossy()
+                ),
+            )
         })?;
         self.render_liquid_using_template_string(&template_doc.content, data)
     }

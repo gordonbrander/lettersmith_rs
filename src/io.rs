@@ -1,5 +1,4 @@
-use std::error::Error;
-pub use std::fs::read_to_string;
+use crate::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
@@ -13,7 +12,7 @@ pub fn dump_errors_to_stderr<T, E>(
     iter: impl Iterator<Item = Result<T, E>>,
 ) -> impl Iterator<Item = T>
 where
-    E: Error,
+    E: std::error::Error,
 {
     iter.filter_map(|result| match result {
         Ok(value) => Some(value),
@@ -35,7 +34,7 @@ where
 ///
 /// This function will return an error if the file cannot be created or written to,
 /// or if the directories cannot be created.
-pub fn write_file_deep<P: AsRef<Path>>(path: P, content: &str) -> std::io::Result<()> {
+pub fn write_file_deep<P: AsRef<Path>>(path: P, content: &str) -> Result<(), Error> {
     // Create parent directories if they don't exist
     if let Some(parent) = path.as_ref().parent() {
         fs::create_dir_all(parent)?;

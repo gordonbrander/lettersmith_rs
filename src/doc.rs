@@ -74,7 +74,7 @@ impl Doc {
     }
 
     /// Write the document to its output path.
-    pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<(), std::io::Error> {
+    pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<(), Error> {
         let write_path = output_dir.as_ref().join(&self.output_path);
         write_file_deep(write_path, &self.content)
     }

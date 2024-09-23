@@ -1,9 +1,9 @@
-use crate::error::Error;
-use crate::io::read_to_string;
+use crate::error::{Error, ErrorKind};
 use crate::json;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
 /// Reads well-known config properties from lettersmith config file
@@ -43,21 +43,23 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read(path: impl AsRef<Path>) -> Result<Self, std::io::Error> {
+    pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
         let json_string = read_to_string(path)?;
-        match serde_json::from_str(&json_string) {
-            Ok(value) => Ok(value),
-            Err(err) => Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
-        }
+        let config: Self = serde_json::from_str(&json_string)?;
+        Ok(config)
     }
 
     pub fn get_plugin_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, Error> {
         let plugin = self
             .plugins
             .get(key)
-            .ok_or(Error::new(format!("No plugin for key {}", key)))?
+            .ok_or(Error::new(
+                ErrorKind::ValueError,
+                format!("No plugin config for {}", key),
+            ))?
             .to_owned();
-        json::from_value(plugin).map_err(|err| Error::new(err.to_string()))
+        json::from_value(plugin)
+            .map_err(|err| Error::new(ErrorKind::Json(err), "Could not deserialize plugin config"))
     }
 }
 
