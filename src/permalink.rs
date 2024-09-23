@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 impl Doc {
     /// Read permalink template parts from a document.
+    /// Returns a hashmap of information useful for templating a permalink.
     pub fn get_permalink_template_parts(&self) -> Option<HashMap<&str, String>> {
         let name = self.id_path.file_name()?.to_string_lossy().into_owned();
         let stem = self.id_path.file_stem()?.to_string_lossy().into_owned();
@@ -40,33 +41,37 @@ impl Doc {
         Some(map)
     }
 
-    /// Render doc permalink (output path) using a template
+    /// Set doc permalink (output path) using a template
     pub fn permalink(self, permalink_template: impl Into<String>) -> Self {
         let parts = self.get_permalink_template_parts().unwrap_or_default();
         let output_path = token_template::render(permalink_template, &parts);
         self.set_output_path(output_path)
     }
 
+    /// Set blog-style permalink (`yyyy/mm/dd/slug/index.html`)
     pub fn blog_permalink(self) -> Self {
         self.permalink("{yyyy}/{mm}/{dd}/{slug}/index.html")
     }
 
+    /// Set page-style permalink (`parent/directories/slug/index.html`)
     pub fn page_permalink(self) -> Self {
         self.permalink("{parents}/{slug}/index.html")
     }
 }
 
 pub trait PermalinkDocs: Docs {
-    /// Render markdown content for all docs
+    /// Set doc permalink (output path) using a template
     fn permalink(self, permalink_template: impl Into<String>) -> impl Docs {
         let permalink_template: String = permalink_template.into();
         self.map(move |doc| doc.permalink(&permalink_template))
     }
 
+    /// Set blog-style permalink (`yyyy/mm/dd/slug/index.html`)
     fn blog_permalink(self) -> impl Docs {
         self.map(|doc| doc.blog_permalink())
     }
 
+    /// Set page-style permalink (`parent/directories/slug/index.html`)
     fn page_permalink(self) -> impl Docs {
         self.map(|doc| doc.page_permalink())
     }
@@ -83,18 +88,19 @@ mod tests {
     #[test]
     fn test_get_permalink_template_parts() {
         let doc = Doc {
-            id_path: PathBuf::from("parent/test_file.md"),
+            id_path: PathBuf::from("a/b/test file.md"),
             created: Utc.with_ymd_and_hms(2023, 5, 15, 0, 0, 0).unwrap(),
             ..Default::default()
         };
 
         let parts = doc.get_permalink_template_parts().unwrap();
 
-        assert_eq!(parts.get("name"), Some(&"test_file.md".to_string()));
-        assert_eq!(parts.get("stem"), Some(&"test_file".to_string()));
+        assert_eq!(parts.get("name"), Some(&"test file.md".to_string()));
+        assert_eq!(parts.get("stem"), Some(&"test file".to_string()));
+        assert_eq!(parts.get("slug"), Some(&"test-file".to_string()));
         assert_eq!(parts.get("ext"), Some(&"md".to_string()));
-        assert_eq!(parts.get("parents"), Some(&"parent".to_string()));
-        assert_eq!(parts.get("parent"), Some(&"parent".to_string()));
+        assert_eq!(parts.get("parents"), Some(&"a/b".to_string()));
+        assert_eq!(parts.get("parent"), Some(&"b".to_string()));
         assert_eq!(parts.get("yyyy"), Some(&"2023".to_string()));
         assert_eq!(parts.get("yy"), Some(&"23".to_string()));
         assert_eq!(parts.get("mm"), Some(&"05".to_string()));
