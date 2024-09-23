@@ -42,24 +42,18 @@ pub struct Config {
     pub plugins: HashMap<String, json::Value>,
 }
 
-impl Config {
-    pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
-        let json_string = read_to_string(path)?;
-        let config: Self = serde_json::from_str(&json_string)?;
-        Ok(config)
-    }
-
-    pub fn get_plugin_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, Error> {
-        let plugin = self
-            .plugins
-            .get(key)
-            .ok_or(Error::new(
-                ErrorKind::ValueError,
-                format!("No plugin config for {}", key),
-            ))?
-            .to_owned();
-        json::from_value(plugin)
-            .map_err(|err| Error::new(ErrorKind::Json(err), "Could not deserialize plugin config"))
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            output_dir: output_dir_default(),
+            template_dir: template_dir_default(),
+            site_url: site_url_default(),
+            site_title: String::default(),
+            site_description: String::default(),
+            site_author: String::default(),
+            data: data_default(),
+            plugins: plugins_default(),
+        }
     }
 }
 
@@ -81,4 +75,25 @@ fn data_default() -> json::Value {
 
 fn plugins_default() -> HashMap<String, json::Value> {
     HashMap::new()
+}
+
+impl Config {
+    pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let json_string = read_to_string(path)?;
+        let config: Self = serde_json::from_str(&json_string)?;
+        Ok(config)
+    }
+
+    pub fn get_plugin_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, Error> {
+        let plugin = self
+            .plugins
+            .get(key)
+            .ok_or(Error::new(
+                ErrorKind::ValueError,
+                format!("No plugin config for key {}", key),
+            ))?
+            .to_owned();
+        json::from_value(plugin)
+            .map_err(|err| Error::new(ErrorKind::Json(err), "Could not deserialize plugin config"))
+    }
 }

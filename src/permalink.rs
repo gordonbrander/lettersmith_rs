@@ -14,6 +14,15 @@ pub struct PermalinkConfig {
     pub page: String,
 }
 
+impl Default for PermalinkConfig {
+    fn default() -> Self {
+        PermalinkConfig {
+            post: default_post_permalink(),
+            page: default_page_permalink(),
+        }
+    }
+}
+
 fn default_post_permalink() -> String {
     "{yyyy}/{mm}/{dd}/{slug}/index.html".to_string()
 }

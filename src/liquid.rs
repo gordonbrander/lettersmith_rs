@@ -59,17 +59,18 @@ pub fn render(template: &str, context: &liquid::model::Object) -> Result<String,
         Err(err) => {
             return Err(Error::new(
                 ErrorKind::Liquid(err),
-                format!("Unable to parse template {}", template),
+                format!("Unable to parse Liquid template {}", template),
             ))
         }
     };
 
-    parsed_template.render(context).map_err(|err| {
-        Error::new(
+    match parsed_template.render(context) {
+        Ok(content) => Ok(content),
+        Err(err) => Err(Error::new(
             ErrorKind::Liquid(err),
-            format!("Unable to render template {}", template),
-        )
-    })
+            format!("Unable to render Liquid template {}", template),
+        )),
+    }
 }
 
 impl Doc {

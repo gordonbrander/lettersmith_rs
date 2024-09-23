@@ -16,13 +16,17 @@ impl Doc {
 
     pub fn markdown_post(self, config: &Config) -> Result<Doc, Error> {
         let doc = self.markdown_doc(config)?;
-        let plugin: PermalinkConfig = config.get_plugin_config("permalink")?;
+        let plugin: PermalinkConfig = config
+            .get_plugin_config("permalink")
+            .unwrap_or(PermalinkConfig::default());
         Ok(doc.set_permalink(plugin.post))
     }
 
     pub fn markdown_page(self, config: &Config) -> Result<Doc, Error> {
         let doc = self.markdown_doc(config)?;
-        let plugin: PermalinkConfig = config.get_plugin_config("permalink")?;
+        let plugin: PermalinkConfig = config
+            .get_plugin_config("permalink")
+            .unwrap_or(PermalinkConfig::default());
         Ok(doc.set_permalink(plugin.page))
     }
 }
