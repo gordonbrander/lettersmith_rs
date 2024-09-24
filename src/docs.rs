@@ -1,6 +1,6 @@
 use crate::doc::Doc;
 use crate::error::Error;
-use crate::io::dump_errors_to_stderr;
+use crate::io::{dump_errors_to_stderr, panic_at_first_error};
 use serde_json;
 use std::collections::HashSet;
 use std::io::{self, BufRead};
@@ -151,10 +151,16 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
 impl<I> Docs for I where I: Iterator<Item = Doc> {}
 
 pub trait DocResults: Iterator<Item = Result<Doc, Error>> + Sized {
-    /// Dump errors in result to stderr
-    /// Returns a DocIterator
+    /// Dump errors in result to stderr and unwrap values values.
+    /// Returns an Iterator of Doc.
     fn dump_errors_to_stderr(self) -> impl Docs {
         dump_errors_to_stderr(self)
+    }
+
+    /// Panic at the first error spotted.
+    /// Panic prints a debug error to stderr.
+    fn panic_at_first_error(self) -> impl Docs {
+        panic_at_first_error(self)
     }
 }
 

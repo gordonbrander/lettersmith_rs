@@ -5,6 +5,6 @@ use lettersmith::docs::{self, DocResults, Docs};
 fn main() {
     let args = parse_args();
     docs::read(args.files.into_iter())
-        .dump_errors_to_stderr()
+        .panic_at_first_error()
         .write_stdio();
 }

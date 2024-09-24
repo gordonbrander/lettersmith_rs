@@ -3,8 +3,6 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 
-use serde_json::json;
-
 /// Filter out errors and log them to stderr.
 /// Returns a new iterator of only the successful values.
 /// Errors are formatted as JSON result objects: `{"ok": false, "error": ""}`.
@@ -17,8 +15,24 @@ where
     iter.filter_map(|result| match result {
         Ok(value) => Some(value),
         Err(err) => {
-            eprintln!("{}", json!({"ok": false, "error": err.to_string()}));
+            eprintln!("{}", err);
             None
+        }
+    })
+}
+
+/// Panic at the first error spotted in the result iterator.
+/// Panic prints a debug error to stderr.
+pub fn panic_at_first_error<T, E>(
+    iter: impl Iterator<Item = Result<T, E>>,
+) -> impl Iterator<Item = T>
+where
+    E: std::error::Error,
+{
+    iter.map(|result| match result {
+        Ok(value) => value,
+        Err(err) => {
+            panic!("{}", err);
         }
     })
 }

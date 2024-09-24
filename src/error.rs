@@ -15,6 +15,18 @@ pub enum ErrorKind {
     Other,
 }
 
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorKind::Io(err) => write!(f, "{}", err),
+            ErrorKind::Json(err) => write!(f, "{}", err),
+            ErrorKind::Liquid(err) => write!(f, "{}", err),
+            ErrorKind::ValueError => write!(f, "{}", "Value error"),
+            ErrorKind::Other => write!(f, "{}", "Other"),
+        }
+    }
+}
+
 impl Error {
     pub fn new(kind: ErrorKind, msg: impl Into<String>) -> Self {
         Error {
@@ -37,7 +49,10 @@ impl std::error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{}", self.msg)?;
+        write!(f, "{}", "\n\nSource:\n")?;
+        write!(f, "{}", self.kind)?;
+        Ok(())
     }
 }
 

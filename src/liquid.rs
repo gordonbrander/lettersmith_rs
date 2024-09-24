@@ -59,7 +59,7 @@ pub fn render(template: &str, context: &model::Object) -> Result<String, Error> 
         Err(err) => {
             return Err(Error::new(
                 ErrorKind::Liquid(err),
-                format!("Unable to parse Liquid template {}", template),
+                format!("Unable to parse Liquid template"),
             ))
         }
     };
@@ -68,7 +68,7 @@ pub fn render(template: &str, context: &model::Object) -> Result<String, Error> 
         Ok(content) => Ok(content),
         Err(err) => Err(Error::new(
             ErrorKind::Liquid(err),
-            format!("Unable to render Liquid template {}", template),
+            format!("Unable to render Liquid template"),
         )),
     }
 }
