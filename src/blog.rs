@@ -7,12 +7,12 @@ use crate::permalink::PermalinkConfig;
 impl Doc {
     fn markdown_doc(self, config: &Config) -> Result<Doc, Error> {
         let base_url: &str = &config.site_url.as_str();
-        let config_json = serde_json::to_value(config)?;
+        let config_json = &config.to_json()?;
         self.parse_and_uplift_frontmatter()
             .autotemplate("templates")
             .render_markdown()
             .absolutize_urls(base_url)
-            .render_liquid(&config_json)
+            .render_liquid(config_json)
     }
 
     pub fn markdown_post(self, config: &Config) -> Result<Doc, Error> {

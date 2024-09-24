@@ -78,12 +78,21 @@ fn plugins_default() -> HashMap<String, json::Value> {
 }
 
 impl Config {
+    /// Read config from file at path
     pub fn read(path: impl AsRef<Path>) -> Result<Self, Error> {
         let json_string = read_to_string(path)?;
         let config: Self = serde_json::from_str(&json_string)?;
         Ok(config)
     }
 
+    /// Convert this config object into a `json::Value`
+    pub fn to_json(&self) -> Result<json::Value, Error> {
+        serde_json::to_value(self)
+            .map_err(|err| Error::new(ErrorKind::Json(err), "Could not serialize Config to JSON"))
+    }
+
+    /// Get config for a plugin by key, deserializing it into a data structure.
+    /// Data structure must implement `serde::DeserializeOwned`.
     pub fn get_plugin_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, Error> {
         let plugin = self
             .plugins
