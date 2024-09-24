@@ -5,7 +5,6 @@ use std::path::Path;
 
 /// Filter out errors and log them to stderr.
 /// Returns a new iterator of only the successful values.
-/// Errors are formatted as JSON result objects: `{"ok": false, "error": ""}`.
 pub fn dump_errors_to_stderr<T, E>(
     iter: impl Iterator<Item = Result<T, E>>,
 ) -> impl Iterator<Item = T>

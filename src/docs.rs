@@ -14,23 +14,13 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         for doc in self.into_iter() {
             match doc.write(output_dir) {
                 Ok(_) => {
-                    let json = serde_json::json!({
-                        "ok": true,
-                        "value": {
-                            "msg": "Wrote file",
-                            "id_path": doc.id_path,
-                            "output_path": doc.output_path
-                        }
-                    });
-                    println!("{}", json)
+                    println!(
+                        "Wrote {} → {}",
+                        doc.id_path.to_string_lossy(),
+                        doc.output_path.to_string_lossy()
+                    )
                 }
-                Err(err) => eprintln!(
-                    "{}",
-                    serde_json::json!({
-                        "ok": false,
-                        "error": err.to_string()
-                    })
-                ),
+                Err(err) => eprintln!("{}", err),
             }
         }
     }
