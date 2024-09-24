@@ -41,7 +41,7 @@ pub fn json_to_liquid(value: &json::Value) -> liquid::model::Value {
 }
 
 /// Render liquid template using pre-defined features
-pub fn render(template: &str, context: &liquid::model::Object) -> Result<String, Error> {
+pub fn render(template: &str, context: &model::Object) -> Result<String, Error> {
     // Construct the parser
     let parser = match liquid::ParserBuilder::with_stdlib().build() {
         Ok(parser) => parser,
@@ -82,15 +82,13 @@ impl Doc {
     pub fn render_liquid_using_template_string(
         self,
         template: &str,
-        data: &json::Value,
+        config: &json::Value,
     ) -> Result<Doc, Error> {
         // Set up the template data
-        let mut context = model::Object::new();
-        context.insert("data".into(), json_to_liquid(&data));
-        context.insert(
-            "doc".into(),
-            model::Value::Object(model::Object::from(&self)),
-        );
+        let context = model::object!({
+            "config": json_to_liquid(&config),
+            "doc": &self
+        });
         let content = render(template, &context)?;
         // Set content and return
         Ok(self.set_content(content).set_extension_html())
@@ -101,7 +99,7 @@ impl Doc {
     ///
     /// The template is provided with `doc` and the additional `data` object
     /// you pass in.
-    pub fn render_liquid(self, data: &json::Value) -> Result<Doc, Error> {
+    pub fn render_liquid(self, config: &json::Value) -> Result<Doc, Error> {
         let Some(template_path) = &self.template_path else {
             return Ok(self);
         };
@@ -115,7 +113,7 @@ impl Doc {
                 ),
             )
         })?;
-        self.render_liquid_using_template_string(&template_doc.content, data)
+        self.render_liquid_using_template_string(&template_doc.content, config)
     }
 }
 
@@ -232,10 +230,10 @@ mod tests {
             meta: json!({"key": "value"}),
         };
 
-        let data = json!({"message": "Hello, World!"});
+        let config = json!({"message": "Hello, World!"});
 
         let rendered_doc = doc
-            .render_liquid_using_template_string("{{ data.message }} - {{ doc.title }}", &data)
+            .render_liquid_using_template_string("{{ config.message }} - {{ doc.title }}", &config)
             .unwrap();
 
         assert_eq!(rendered_doc.content, "Hello, World! - Test Document");
