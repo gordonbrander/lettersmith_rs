@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::html::strip_html;
@@ -8,6 +6,7 @@ use crate::text::{first_sentence, to_slug};
 use crate::token_template;
 use lazy_static::lazy_static;
 use regex::{self, Regex};
+use std::collections::HashMap;
 use tap::Pipe;
 
 lazy_static! {
@@ -108,7 +107,11 @@ impl Doc {
     }
 
     pub fn render_wikilinks(mut self, template: &str, context: &HashMap<&str, String>) -> Self {
-        self.content = render_wikilinks_in_text(&self.content, template, context);
+        let mut template_parts = self
+            .get_permalink_template_parts()
+            .unwrap_or(HashMap::new());
+        template_parts.extend(context.clone());
+        self.content = render_wikilinks_in_text(&self.content, template, &template_parts);
         self
     }
 }
