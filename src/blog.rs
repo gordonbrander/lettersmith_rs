@@ -9,7 +9,7 @@ impl Doc {
         let base_url: &str = &config.site_url.as_str();
         let config_json = &config.to_json()?;
         self.parse_and_uplift_frontmatter()
-            .autotemplate("templates")
+            .autotemplate(&config.template_dir)
             .render_markdown()
             .absolutize_urls(base_url)
             .render_liquid(config_json)
