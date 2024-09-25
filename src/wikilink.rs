@@ -5,17 +5,17 @@ use crate::markdown::strip_markdown;
 use crate::stub::Stub;
 use crate::text::{first_sentence, to_slug};
 use crate::token_template;
-use lazy_static::lazy_static;
 use regex::{self, Regex};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tap::Pipe;
 
-lazy_static! {
-    static ref WIKILINK: Regex =
-        Regex::new(r"\[\[([^\]]+)\]\]").expect("Could not parse regular expression");
-    static ref TRANSCLUDE: Regex =
-        Regex::new(r"^\[\[([^\]]+)\]\]$").expect("Could not parse regular expression");
-}
+static WIKILINK: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[\[([^\]]+)\]\]").expect("Could not parse regular expression"));
+
+static TRANSCLUDE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\[\[([^\]]+)\]\]$").expect("Could not parse regular expression")
+});
 
 /// Represents a parsed wikilink
 pub struct Wikilink {

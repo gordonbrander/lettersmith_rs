@@ -1,16 +1,14 @@
-use lazy_static::lazy_static;
 use regex::Regex;
+use std::sync::LazyLock;
 use tap::Pipe;
 
-fn compile_non_slug_chars_regex() -> Regex {
+static FIRST_SENTENCE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[^.]+").expect("Could not compile Regex"));
+
+static NON_SLUG_CHARS: LazyLock<Regex> = LazyLock::new(|| {
     let pattern_str = format!("[{}]", regex::escape("[](){}<>:,;?!^&%$#@'\"|*~"));
     Regex::new(&pattern_str).expect("Could not parse regular expression")
-}
-
-lazy_static! {
-    static ref FIRST_SENTENCE: Regex = Regex::new(r"^[^.]+").expect("Could not compile Regex");
-    static ref NON_SLUG_CHARS: Regex = compile_non_slug_chars_regex();
-}
+});
 
 /// Extract the first sentence from a string.
 pub fn first_sentence(plain_text: &str) -> String {
