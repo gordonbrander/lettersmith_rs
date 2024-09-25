@@ -19,21 +19,38 @@ pub struct Stub {
 }
 
 impl Stub {
+    /// Create a draft stub
+    pub fn draft(id_path: impl Into<PathBuf>) -> Self {
+        let id_path: PathBuf = id_path.into();
+        Stub {
+            id_path: id_path.clone(),
+            output_path: id_path,
+            ..Default::default()
+        }
+    }
+
     pub fn get_title_slug(&self) -> String {
         to_slug(&self.title)
     }
 }
 
+impl Doc {
+    /// Convert Doc into a Stub
+    pub fn to_stub(&self) -> Stub {
+        Stub {
+            id_path: self.id_path.clone(),
+            output_path: self.output_path.clone(),
+            created: self.created,
+            modified: self.modified,
+            title: self.title.clone(),
+            summary: self.summary_280(),
+        }
+    }
+}
+
 impl From<&Doc> for Stub {
     fn from(doc: &Doc) -> Self {
-        Stub {
-            id_path: doc.id_path.clone(),
-            output_path: doc.output_path.clone(),
-            created: doc.created,
-            modified: doc.modified,
-            title: doc.title.clone(),
-            summary: doc.summary_280(),
-        }
+        doc.to_stub()
     }
 }
 

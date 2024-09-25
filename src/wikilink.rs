@@ -2,6 +2,7 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::html::strip_html;
 use crate::markdown::strip_markdown;
+use crate::stub::Stub;
 use crate::text::{first_sentence, to_slug};
 use crate::token_template;
 use lazy_static::lazy_static;
@@ -60,18 +61,47 @@ pub fn strip_wikilinks(text: &str) -> String {
         .into_owned()
 }
 
-pub fn render_wikilinks_in_text(
+/// Render wikilinks in text using a template and an index of slugs to stubs.
+/// Wikilink will be sluggified, then the slug used to look up a corresponding
+/// stub who's values are used to render the wikilink.
+/// If no stub is found, the wikilink is replaced with plain text.
+/// Otherwise, the wikilink will be replaced by the rendered template.
+///
+/// Template variables available are:
+/// - `text`: the text of the wikilink (display text if using pipe)
+/// - `slug`: the sluggified text of the wikilink
+/// - `output_path`: the output_path of the stub
+/// - `title`: the title of the stub
+/// - `summary`: the summary of the stub
+pub fn render_wikilinks_with_template(
     text: &str,
-    template: &str,
-    context: &HashMap<&str, String>,
+    wikilink_template: &str,
+    nolink_template: &str,
+    slug_to_stub_index: &HashMap<String, Stub>,
 ) -> String {
     WIKILINK
         .replace_all(&text, |caps: &regex::Captures| {
             let wikilink = parse_wikilink(&caps[0]);
-            let mut context = context.clone();
-            context.insert("text", wikilink.text);
-            context.insert("slug", wikilink.slug);
-            token_template::render(template, &context)
+            match slug_to_stub_index.get(&wikilink.slug) {
+                Some(stub) => {
+                    let mut context: HashMap<&str, String> = HashMap::new();
+                    context.insert(
+                        "output_path",
+                        stub.output_path.to_string_lossy().into_owned(),
+                    );
+                    context.insert("title", stub.title.clone());
+                    context.insert("summary", stub.summary.clone());
+                    context.insert("text", wikilink.text);
+                    context.insert("slug", wikilink.slug);
+                    token_template::render(wikilink_template, &context)
+                }
+                None => {
+                    let mut context: HashMap<&str, String> = HashMap::new();
+                    context.insert("text", wikilink.text);
+                    context.insert("slug", wikilink.slug);
+                    token_template::render(nolink_template, &context)
+                }
+            }
         })
         .into_owned()
 }
@@ -106,15 +136,61 @@ impl Doc {
             .pipe(|s| strip_markdown(&s))
     }
 
-    pub fn render_wikilinks(mut self, template: &str, context: &HashMap<&str, String>) -> Self {
-        self.content = render_wikilinks_in_text(&self.content, template, &context);
+    /// Render wikilinks using a custom template.
+    pub fn render_wikilinks_with_template(
+        mut self,
+        wikilink_template: &str,
+        nolink_template: &str,
+        slug_to_stub_index: &HashMap<String, Stub>,
+    ) -> Self {
+        self.content = render_wikilinks_with_template(
+            &self.content,
+            wikilink_template,
+            nolink_template,
+            slug_to_stub_index,
+        );
         self
+    }
+
+    /// Render wikilinks using a default template
+    pub fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Stub>) -> Self {
+        self.render_wikilinks_with_template(
+            r#"<a class="wikilink" href="{output_path}">{text}</a>"#,
+            r#"<span class="nolink>{text}</span>"#,
+            slug_to_stub_index,
+        )
     }
 }
 
 pub trait WikilinkDocs: Docs {
-    fn render_wikilinks(self, template: &str, context: &HashMap<&str, String>) -> impl Docs {
-        self.map(move |doc| doc.render_wikilinks(template, context))
+    /// Create a hashmap of stubs keyed by sluggified-title.
+    /// This hashmap can be passed to `render_wikilinks` to render wikilinks
+    /// in the content.
+    fn index_by_title_slug(self) -> HashMap<String, Stub> {
+        self.map(|doc| (doc.get_title_slug(), doc.to_stub()))
+            .into_iter()
+            .pipe(|iter| HashMap::from_iter(iter))
+    }
+
+    /// Render wikilinks using a custom template
+    fn render_wikilinks_with_template(
+        self,
+        wikilink_template: &str,
+        nolink_template: &str,
+        slug_to_stub_index: &HashMap<String, Stub>,
+    ) -> impl Docs {
+        self.map(|doc| {
+            doc.render_wikilinks_with_template(
+                wikilink_template,
+                nolink_template,
+                slug_to_stub_index,
+            )
+        })
+    }
+
+    /// Render wikilinks using default template
+    fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Stub>) -> impl Docs {
+        self.map(|doc| doc.render_wikilinks(slug_to_stub_index))
     }
 }
 
@@ -155,11 +231,38 @@ mod tests {
     }
 
     #[test]
-    fn test_render_wikilinks() {
+    fn test_render_wikilinks_link() {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
-        let rendered =
-            render_wikilinks_in_text(text, "<a href=\"{slug}.html\">{text}</a>", &HashMap::new());
-        assert_eq!(rendered, "This is a <a href=\"wikilink.html\">wikilink</a> and a <a href=\"link.html\">Custom Text</a>.");
+
+        let mut slug_to_stub_index: HashMap<String, Stub> = HashMap::new();
+        slug_to_stub_index.insert("wikilink".into(), Stub::draft("wikilink.html"));
+        slug_to_stub_index.insert("link".into(), Stub::draft("custom-text.html"));
+
+        let rendered = render_wikilinks_with_template(
+            text,
+            r#"<a class="wikilink" href="{slug}.html">{text}</a>"#,
+            r#"<span class="nolink">{text}</span>"#,
+            &slug_to_stub_index,
+        );
+        assert_eq!(
+            rendered,
+            r#"This is a <a class="wikilink" href="wikilink.html">wikilink</a> and a <a class="wikilink" href="link.html">Custom Text</a>."#
+        );
+    }
+
+    #[test]
+    fn test_render_wikilinks_nolink() {
+        let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
+        let rendered = render_wikilinks_with_template(
+            text,
+            r#"<a class="wikilink" href=\"{slug}.html\">{text}</a>"#,
+            r#"<span class="nolink">{text}</span>"#,
+            &HashMap::new(),
+        );
+        assert_eq!(
+            rendered,
+            r#"This is a <span class="nolink">wikilink</span> and a <span class="nolink">Custom Text</span>."#
+        );
     }
 
     #[test]
