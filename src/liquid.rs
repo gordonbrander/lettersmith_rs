@@ -118,7 +118,7 @@ impl Doc {
 }
 
 pub trait LiquidDocs: Docs {
-    fn render_liquid(self, data: json::Value) -> impl DocResults {
+    fn render_liquid(self, data: &json::Value) -> impl DocResults {
         self.map(move |doc| doc.render_liquid(&data))
     }
 }

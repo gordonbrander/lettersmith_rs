@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use lettersmith::config::Config;
+use lettersmith::liquid::LiquidDocs;
 use lettersmith::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -34,6 +35,9 @@ enum Commands {
 
     #[command(about = "Transforms for markdown pages with liquid templates")]
     Page {},
+
+    #[command(about = "Render doc with the liquid template set on doc's template_path")]
+    Liquid {},
 }
 
 /// Read docs from paths
@@ -63,6 +67,18 @@ fn page(config: &Config) {
         .write_stdio();
 }
 
+/// Render liquid templates
+fn liquid(config: &Config) {
+    let Ok(config_json) = config.to_json() else {
+        panic!("Could not serialize config to JSON");
+    };
+    docs::read_stdin()
+        .panic_at_first_error()
+        .render_liquid(&config_json)
+        .panic_at_first_error()
+        .write_stdio();
+}
+
 /// Read all file paths to docs and stream JSON to stdout.
 fn main() {
     let cli = Cli::parse();
@@ -75,5 +91,6 @@ fn main() {
         Commands::Write {} => write(&config.output_dir),
         Commands::Post {} => post(&config),
         Commands::Page {} => page(&config),
+        Commands::Liquid {} => liquid(&config),
     }
 }
