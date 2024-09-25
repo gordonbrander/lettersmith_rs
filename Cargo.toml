@@ -4,16 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "ls_read"
-path = "src/bin/ls_read.rs"
-
-[[bin]]
-name = "ls_write"
-path = "src/bin/ls_write.rs"
-
-[[bin]]
-name = "ls_blog"
-path = "src/bin/ls_blog.rs"
+name = "smith"
+path = "src/bin/smith.rs"
 
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }

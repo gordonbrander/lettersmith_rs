@@ -13,6 +13,7 @@ pub mod json;
 pub mod liquid;
 pub mod markdown;
 pub mod permalink;
+pub mod prelude;
 pub mod rss;
 pub mod sitemap;
 pub mod stub;
