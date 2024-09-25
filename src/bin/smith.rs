@@ -18,7 +18,7 @@ enum Commands {
     #[command(about = "Read docs from file paths")]
     Read {
         #[arg(
-            help = "File paths to read. Tip: you can use glob patterns to match specific lists of files. Example: posts/*.md"
+            help = "File paths to read. Tip: you can use glob patterns to match specific lists of files. Example: smith read posts/*.md"
         )]
         #[arg(value_name = "FILE")]
         files: Vec<PathBuf>,
@@ -55,16 +55,25 @@ fn post(config: &Config) {
         .write_stdio();
 }
 
+fn page(config: &Config) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .markdown_page(config)
+        .panic_at_first_error()
+        .write_stdio();
+}
+
 /// Read all file paths to docs and stream JSON to stdout.
 fn main() {
     let cli = Cli::parse();
     let config_path = env::var("CONFIG").unwrap_or("lettersmith.json".to_string());
     let config =
         Config::read(&config_path).expect(&format!("Could not read config at {}", config_path));
+
     match cli.command {
         Commands::Read { files } => read(files),
         Commands::Write {} => write(&config.output_dir),
         Commands::Post {} => post(&config),
-        _ => println!("Pick a subcommand :)"),
+        Commands::Page {} => page(&config),
     }
 }
