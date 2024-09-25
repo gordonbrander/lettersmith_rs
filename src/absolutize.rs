@@ -1,5 +1,11 @@
 use crate::{doc::Doc, docs::Docs};
 use regex::Regex;
+use std::sync::LazyLock;
+
+static HREF_SRC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(src|href)=["'](.*?)["']"#)
+        .expect("Failed to compile regex for absolutizing URLs")
+});
 
 /// Qualify a URL with a base URL if it's relative.
 pub fn qualify_url(url: &str, base_url: &str) -> String {
@@ -12,15 +18,14 @@ pub fn qualify_url(url: &str, base_url: &str) -> String {
 
 /// Replace relative URLs in content with absolute URLs.
 pub fn absolutize_urls_in_html(html: &str, base_url: &str) -> String {
-    let re = Regex::new(r#"(src|href)=["'](.*?)["']"#)
-        .expect("Failed to compile regex for absolutizing URLs");
-    re.replace_all(html, |caps: &regex::Captures| {
-        let attr = &caps[1];
-        let value = &caps[2];
-        let url = qualify_url(value, base_url);
-        format!(r#"{}="{}""#, attr, url)
-    })
-    .to_string()
+    HREF_SRC_REGEX
+        .replace_all(html, |caps: &regex::Captures| {
+            let attr = &caps[1];
+            let value = &caps[2];
+            let url = qualify_url(value, base_url);
+            format!(r#"{}="{}""#, attr, url)
+        })
+        .to_string()
 }
 
 impl Doc {

@@ -1,13 +1,16 @@
 use crate::doc::Doc;
 use regex::Regex;
+use std::sync::LazyLock;
+
+static FRONTMATTER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    // `(?ms)` means "multiline" and "dot matches newline"
+    Regex::new("(?ms)^---\n(.*)---\n?").expect("Could not compile frontmatter Regex")
+});
 
 pub fn extract_front_matter_and_content(text: &str) -> (String, String) {
-    // `(?ms)` means "multiline" and "dot matches newline"
-    let re = Regex::new("(?ms)^---\n(.*)---\n?").unwrap();
-
-    match re.find(text) {
+    match FRONTMATTER_REGEX.find(text) {
         Some(match_result) => {
-            let front_matter = re
+            let front_matter = FRONTMATTER_REGEX
                 .captures(text)
                 .and_then(|cap| cap.get(1).map(|m| m.as_str().trim().to_string()))
                 .unwrap_or_else(String::new);
