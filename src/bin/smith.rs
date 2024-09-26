@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use lettersmith::liquid::LiquidDocs;
 use lettersmith::prelude::*;
 use std::path::{Path, PathBuf};
 
@@ -40,7 +39,7 @@ enum Commands {
 
         #[arg(long = "permalink-template")]
         #[arg(default_value = "{parents}/{slug}/index.html")]
-        #[arg(help = "Template for rendering permalinks.")]
+        #[arg(help = "Template for rendering permalinks")]
         permalink_template: String,
 
         #[arg(long = "template-dir")]
@@ -54,6 +53,14 @@ enum Commands {
         #[arg(default_value = "data.json")]
         #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
         template_data_path: PathBuf,
+    },
+
+    #[command(about = "Set permalink via a template")]
+    Permalink {
+        #[arg(long = "template")]
+        #[arg(default_value = "{parents}/{slug}/index.html")]
+        #[arg(help = "Template for rendering permalinks")]
+        permalink_template: String,
     },
 
     #[command(about = "Render doc with the liquid template set on doc's template_path")]
@@ -85,6 +92,13 @@ fn post(site_url: &str, permalink_template: &str, template_dir: &Path, template_
         .write_stdio();
 }
 
+fn permalink(template: &str) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .set_permalink(template)
+        .write_stdio();
+}
+
 /// Render liquid templates
 fn liquid(template_data_path: &Path) {
     let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
@@ -113,6 +127,7 @@ fn main() {
             &template_dir,
             &template_data_path,
         ),
+        Commands::Permalink { permalink_template } => permalink(&permalink_template),
         Commands::Liquid { template_data_path } => liquid(&template_data_path),
     }
 }
