@@ -1,44 +1,37 @@
-use crate::config::Config;
 use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
-use crate::permalink::PermalinkConfig;
+use crate::json;
+use std::path::Path;
 
 impl Doc {
-    fn markdown_doc(self, config: &Config) -> Result<Doc, Error> {
-        let base_url: &str = &config.site_url.as_str();
-        let config_json = &config.to_json()?;
+    pub fn markdown_blog_doc(
+        self,
+        site_url: &str,
+        permalink_template: &str,
+        template_dir: &Path,
+        template_data: &json::Value,
+    ) -> Result<Doc, Error> {
         self.parse_and_uplift_frontmatter()
-            .autotemplate(&config.template_dir)
+            .set_permalink(permalink_template)
+            .autotemplate(template_dir)
             .render_markdown()
-            .absolutize_urls(base_url)
-            .render_liquid(config_json)
-    }
-
-    pub fn markdown_post(self, config: &Config) -> Result<Doc, Error> {
-        let doc = self.markdown_doc(config)?;
-        let plugin: PermalinkConfig = config
-            .get_plugin_config("permalink")
-            .unwrap_or(PermalinkConfig::default());
-        Ok(doc.set_permalink(plugin.post))
-    }
-
-    pub fn markdown_page(self, config: &Config) -> Result<Doc, Error> {
-        let doc = self.markdown_doc(config)?;
-        let plugin: PermalinkConfig = config
-            .get_plugin_config("permalink")
-            .unwrap_or(PermalinkConfig::default());
-        Ok(doc.set_permalink(plugin.page))
+            .absolutize_urls(site_url)
+            .render_liquid(template_data)
     }
 }
 
 pub trait BlogDocs: Docs {
-    fn markdown_post(self, config: &Config) -> impl DocResults {
-        self.map(|doc| doc.markdown_post(config))
-    }
-
-    fn markdown_page(self, config: &Config) -> impl DocResults {
-        self.map(|doc| doc.markdown_page(config))
+    fn markdown_blog_doc(
+        self,
+        site_url: &str,
+        permalink_template: &str,
+        template_dir: &Path,
+        template_data: &json::Value,
+    ) -> impl DocResults {
+        self.map(|doc| {
+            doc.markdown_blog_doc(site_url, permalink_template, template_dir, template_data)
+        })
     }
 }
 

@@ -1,8 +1,6 @@
 use clap::{Parser, Subcommand};
-use lettersmith::config::Config;
 use lettersmith::liquid::LiquidDocs;
 use lettersmith::prelude::*;
-use std::env;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -28,16 +26,43 @@ enum Commands {
     #[command(
         about = "Write docs to directory defined in config file. Typically used at the end of a chain of piped smith commands to take the stream of JSON docs and write it to disk."
     )]
-    Write {},
+    Write {
+        #[arg(help = "Directory to write files to")]
+        output_dir: PathBuf,
+    },
 
-    #[command(about = "Transforms for markdown blog posts with liquid templates")]
-    Post {},
+    #[command(about = "Transforms doc into markdown post with liquid templates")]
+    Post {
+        #[arg(long = "site-url")]
+        #[arg(default_value = "/")]
+        #[arg(help = "URL for site. Used to absolutize URLS in the page.")]
+        site_url: String,
 
-    #[command(about = "Transforms for markdown pages with liquid templates")]
-    Page {},
+        #[arg(long = "permalink-template")]
+        #[arg(default_value = "{parents}/{slug}/index.html")]
+        #[arg(help = "Template for rendering permalinks.")]
+        permalink_template: String,
+
+        #[arg(long = "template-dir")]
+        #[arg(default_value = "templates")]
+        #[arg(
+            help = "Directory containing templates. Used to qualify template paths when automatically assigning templates by path."
+        )]
+        template_dir: PathBuf,
+
+        #[arg(long = "data")]
+        #[arg(default_value = "data.json")]
+        #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
+        template_data_path: PathBuf,
+    },
 
     #[command(about = "Render doc with the liquid template set on doc's template_path")]
-    Liquid {},
+    Liquid {
+        #[arg(long = "data")]
+        #[arg(default_value = "data.json")]
+        #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
+        template_data_path: PathBuf,
+    },
 }
 
 /// Read docs from paths
@@ -51,30 +76,21 @@ fn write(output_dir: &Path) {
     docs::read_stdin().panic_at_first_error().write(output_dir);
 }
 
-fn post(config: &Config) {
+fn post(site_url: &str, permalink_template: &str, template_dir: &Path, template_data_path: &Path) {
+    let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_post(config)
-        .panic_at_first_error()
-        .write_stdio();
-}
-
-fn page(config: &Config) {
-    docs::read_stdin()
-        .panic_at_first_error()
-        .markdown_page(config)
+        .markdown_blog_doc(site_url, permalink_template, template_dir, &template_data)
         .panic_at_first_error()
         .write_stdio();
 }
 
 /// Render liquid templates
-fn liquid(config: &Config) {
-    let Ok(config_json) = config.to_json() else {
-        panic!("Could not serialize config to JSON");
-    };
+fn liquid(template_data_path: &Path) {
+    let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
     docs::read_stdin()
         .panic_at_first_error()
-        .render_liquid(&config_json)
+        .render_liquid(&template_data)
         .panic_at_first_error()
         .write_stdio();
 }
@@ -82,15 +98,21 @@ fn liquid(config: &Config) {
 /// Read all file paths to docs and stream JSON to stdout.
 fn main() {
     let cli = Cli::parse();
-    let config_path = env::var("CONFIG").unwrap_or("lettersmith.json".to_string());
-    let config =
-        Config::read(&config_path).expect(&format!("Could not read config at {}", config_path));
 
     match cli.command {
         Commands::Read { files } => read(files),
-        Commands::Write {} => write(&config.output_dir),
-        Commands::Post {} => post(&config),
-        Commands::Page {} => page(&config),
-        Commands::Liquid {} => liquid(&config),
+        Commands::Write { output_dir } => write(&output_dir),
+        Commands::Post {
+            site_url,
+            permalink_template,
+            template_dir,
+            template_data_path,
+        } => post(
+            &site_url,
+            &permalink_template,
+            &template_dir,
+            &template_data_path,
+        ),
+        Commands::Liquid { template_data_path } => liquid(&template_data_path),
     }
 }

@@ -82,11 +82,11 @@ impl Doc {
     pub fn render_liquid_using_template_string(
         self,
         template: &str,
-        config: &json::Value,
+        data: &json::Value,
     ) -> Result<Doc, Error> {
         // Set up the template data
         let context = model::object!({
-            "config": json_to_liquid(&config),
+            "data": json_to_liquid(&data),
             "doc": &self
         });
         let content = render(template, &context)?;
@@ -99,7 +99,7 @@ impl Doc {
     ///
     /// The template is provided with `doc` and the additional `data` object
     /// you pass in.
-    pub fn render_liquid(self, config: &json::Value) -> Result<Doc, Error> {
+    pub fn render_liquid(self, data: &json::Value) -> Result<Doc, Error> {
         let Some(template_path) = &self.template_path else {
             return Ok(self);
         };
@@ -113,7 +113,7 @@ impl Doc {
                 ),
             )
         })?;
-        self.render_liquid_using_template_string(&template_doc.content, config)
+        self.render_liquid_using_template_string(&template_doc.content, data)
     }
 }
 
@@ -233,7 +233,7 @@ mod tests {
         let config = json!({"message": "Hello, World!"});
 
         let rendered_doc = doc
-            .render_liquid_using_template_string("{{ config.message }} - {{ doc.title }}", &config)
+            .render_liquid_using_template_string("{{ data.message }} - {{ data.title }}", &config)
             .unwrap();
 
         assert_eq!(rendered_doc.content, "Hello, World! - Test Document");
