@@ -30,8 +30,8 @@ enum Commands {
         output_dir: PathBuf,
     },
 
-    #[command(about = "Transforms doc into markdown post with liquid templates")]
-    Post {
+    #[command(about = "Transform docs into markdown blog posts or pages with Liquid templates")]
+    Blog {
         #[arg(long = "site-url")]
         #[arg(default_value = "/")]
         #[arg(help = "URL for site. Used to absolutize URLS in the page.")]
@@ -83,7 +83,7 @@ fn write(output_dir: &Path) {
     docs::read_stdin().panic_at_first_error().write(output_dir);
 }
 
-fn post(site_url: &str, permalink_template: &str, template_dir: &Path, template_data_path: &Path) {
+fn blog(site_url: &str, permalink_template: &str, template_dir: &Path, template_data_path: &Path) {
     let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
     docs::read_stdin()
         .panic_at_first_error()
@@ -116,12 +116,12 @@ fn main() {
     match cli.command {
         Commands::Read { files } => read(files),
         Commands::Write { output_dir } => write(&output_dir),
-        Commands::Post {
+        Commands::Blog {
             site_url,
             permalink_template,
             template_dir,
             template_data_path,
-        } => post(
+        } => blog(
             &site_url,
             &permalink_template,
             &template_dir,
