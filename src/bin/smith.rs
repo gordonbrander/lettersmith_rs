@@ -27,6 +27,8 @@ enum Commands {
     )]
     Write {
         #[arg(help = "Directory to write files to")]
+        #[arg(value_name = "DIRECTORY")]
+        #[arg(default_value = "public")]
         output_dir: PathBuf,
     },
 
