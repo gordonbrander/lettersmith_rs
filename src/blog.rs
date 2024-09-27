@@ -5,6 +5,27 @@ use crate::json;
 use std::path::Path;
 
 impl Doc {
+    /// Processes a markdown blog doc through several steps.
+    ///
+    /// Performs the following:
+    /// 1. Parses and uplifts the frontmatter
+    /// 2. Sets the permalink based on the provided template
+    /// 3. Applies an auto-template from the specified directory
+    /// 4. Renders the markdown content
+    /// 5. Absolutizes URLs using the provided site URL
+    /// 6. Renders the document using Liquid templating with the given template data
+    ///
+    /// # Arguments
+    ///
+    /// * `site_url` - The base URL of the site
+    /// * `permalink_template` - The template string for generating permalinks
+    /// * `template_dir` - The directory containing template files
+    /// * `template_data` - JSON data to be used in Liquid templating
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the processed `Doc` if successful, or an
+    /// `Error` if any step fails.
     pub fn markdown_blog_doc(
         self,
         site_url: &str,
