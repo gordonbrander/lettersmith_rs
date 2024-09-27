@@ -1,4 +1,4 @@
-use crate::doc::Doc;
+use crate::{doc::Doc, docs::Docs};
 use regex::Regex;
 use std::sync::LazyLock;
 
@@ -24,7 +24,12 @@ pub fn extract_front_matter_and_content(text: &str) -> (String, String) {
 }
 
 impl Doc {
-    /// Parse YAML frontmatter and assign to `meta`
+    /// Parses YAML frontmatter from the document's content and assigns it to the `meta` field.
+    ///
+    /// Extracts the frontmatter (if present) from the document's content,
+    /// attempts to parse it as YAML, and assigns the resulting data to the `meta` field.
+    /// If parsing succeeds, it updates the `meta` field and removes the frontmatter from the content.
+    /// If parsing fails, the `meta` field remains unchanged.
     pub fn parse_frontmatter(mut self) -> Self {
         let (frontmatter, content) = extract_front_matter_and_content(&self.content);
         if let Ok(meta) = serde_yml::from_str(&frontmatter) {
@@ -40,6 +45,18 @@ impl Doc {
         self.parse_frontmatter().uplift_meta()
     }
 }
+
+pub trait FrontmatterDocs: Docs {
+    fn parse_frontmatter(self) -> impl Docs {
+        self.map(|doc| doc.parse_frontmatter())
+    }
+
+    fn parse_and_uplift_frontmatter(self) -> impl Docs {
+        self.map(|doc| doc.parse_and_uplift_frontmatter())
+    }
+}
+
+impl<I> FrontmatterDocs for I where I: Docs {}
 
 #[cfg(test)]
 mod tests {

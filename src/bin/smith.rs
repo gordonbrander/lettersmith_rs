@@ -70,6 +70,35 @@ enum Commands {
         #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
         template_data_path: PathBuf,
     },
+
+    #[command(
+        about = "Parse and uplift frontmatter. Frontmatter is parsed as YAML and assigned to doc meta. Blessed fields, such as title are assigned to the corresponding field on the doc."
+    )]
+    Frontmatter {},
+}
+
+/// Read all file paths to docs and stream JSON to stdout.
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Read { files } => read(files),
+        Commands::Write { output_dir } => write(&output_dir),
+        Commands::Blog {
+            site_url,
+            permalink_template,
+            template_dir,
+            template_data_path,
+        } => blog(
+            &site_url,
+            &permalink_template,
+            &template_dir,
+            &template_data_path,
+        ),
+        Commands::Permalink { permalink_template } => permalink(&permalink_template),
+        Commands::Liquid { template_data_path } => liquid(&template_data_path),
+        Commands::Frontmatter {} => frontmatter(),
+    }
 }
 
 /// Read docs from paths
@@ -109,25 +138,10 @@ fn liquid(template_data_path: &Path) {
         .write_stdio();
 }
 
-/// Read all file paths to docs and stream JSON to stdout.
-fn main() {
-    let cli = Cli::parse();
-
-    match cli.command {
-        Commands::Read { files } => read(files),
-        Commands::Write { output_dir } => write(&output_dir),
-        Commands::Blog {
-            site_url,
-            permalink_template,
-            template_dir,
-            template_data_path,
-        } => blog(
-            &site_url,
-            &permalink_template,
-            &template_dir,
-            &template_data_path,
-        ),
-        Commands::Permalink { permalink_template } => permalink(&permalink_template),
-        Commands::Liquid { template_data_path } => liquid(&template_data_path),
-    }
+/// Parse and uplift frontmatter
+fn frontmatter() {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .parse_and_uplift_frontmatter()
+        .write_stdio();
 }
