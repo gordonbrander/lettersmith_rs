@@ -2,38 +2,24 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::text::to_slug;
 use crate::token_template;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Config for permalinks in plugins section of lettersmith config file.
-#[derive(Serialize, Deserialize)]
-pub struct PermalinkConfig {
-    #[serde(default = "default_post_permalink")]
-    pub post: String,
-    #[serde(default = "default_page_permalink")]
-    pub page: String,
-}
-
-impl Default for PermalinkConfig {
-    fn default() -> Self {
-        PermalinkConfig {
-            post: default_post_permalink(),
-            page: default_page_permalink(),
-        }
-    }
-}
-
-fn default_post_permalink() -> String {
-    "{yyyy}/{mm}/{dd}/{slug}/index.html".to_string()
-}
-
-fn default_page_permalink() -> String {
-    "{parents}/{slug}/index.html".to_string()
-}
-
 impl Doc {
-    /// Read permalink template parts from a document.
-    /// Returns a hashmap of information useful for templating a permalink.
+    /// Extracts permalink template parts from a document.
+    ///
+    /// Returns `Some(HashMap<&str, String>)` containing the following key-value pairs:
+    /// - "name": File name including extension
+    /// - "stem": File name excluding extension
+    /// - "slug": URL-friendly version of the stem
+    /// - "ext": File extension
+    /// - "parents": All parent directories
+    /// - "parent": Closest parent directory
+    /// - "yyyy": Full year (4 digits)
+    /// - "yy": Year (2 digits)
+    /// - "mm": Month (2 digits)
+    /// - "dd": Day (2 digits)
+    ///
+    /// Returns `None` if any required path component is missing.
     pub fn get_permalink_template_parts(&self) -> Option<HashMap<&str, String>> {
         let name = self.id_path.file_name()?.to_string_lossy().into_owned();
         let stem = self.id_path.file_stem()?.to_string_lossy().into_owned();
@@ -68,7 +54,35 @@ impl Doc {
         Some(map)
     }
 
-    /// Set doc permalink (`output_path`) using a template
+    /// Sets the document's permalink (output path) using a provided template.
+    ///
+    /// The template can include placeholders that will be replaced with
+    /// corresponding values from the document's metadata. Available placeholders are:
+    /// - {name}: File name including extension
+    /// - {stem}: File name excluding extension
+    /// - {slug}: URL-friendly version of the stem
+    /// - {ext}: File extension
+    /// - {parents}: All parent directories
+    /// - {parent}: Closest parent directory
+    /// - {yyyy}: Full year (4 digits)
+    /// - {yy}: Year (2 digits)
+    /// - {mm}: Month (2 digits)
+    /// - {dd}: Day (2 digits)
+    ///
+    /// # Arguments
+    ///
+    /// * `permalink_template` - A string or string-like object representing the template
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` with the updated output path.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let doc = Doc::new();
+    /// let doc_with_permalink = doc.set_permalink("{yyyy}/{mm}/{dd}/{slug}/index.html");
+    /// ```
     pub fn set_permalink(self, permalink_template: impl Into<String>) -> Self {
         let parts = self.get_permalink_template_parts().unwrap_or_default();
         let output_path = token_template::render(permalink_template, &parts);
