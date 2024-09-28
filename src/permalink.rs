@@ -76,13 +76,6 @@ impl Doc {
     /// # Returns
     ///
     /// Returns `Self` with the updated output path.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let doc = Doc::new();
-    /// let doc_with_permalink = doc.set_permalink("{yyyy}/{mm}/{dd}/{slug}/index.html");
-    /// ```
     pub fn set_permalink(self, permalink_template: impl Into<String>) -> Self {
         let parts = self.get_permalink_template_parts().unwrap_or_default();
         let output_path = token_template::render(permalink_template, &parts);
