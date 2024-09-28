@@ -5,27 +5,27 @@ use std::path::Path;
 const RSS_TEMPLATE: &str = r#"
 <rss version="2.0">
 <channel>
-  <title>{{title | escape}}</title>
-  <link>{{site_url}}</link>
-  <description>{{description | escape}}</description>
-  <generator>{{generator}}</generator>
+  <title>{{ doc.title | escape }}</title>
+  <link>{{ doc.meta.site_url }}</link>
+  <description>{{ doc.meta.description | escape }}</description>
+  <generator>{{ doc.meta.generator }}</generator>
   <lastBuildDate>
-    {{last_build_date.strftime("%a, %d %b %Y %H:%M:%S %Z")}}
+    {{ doc.modified | date: "%a, %d %b %Y %H:%M:%S %Z" }}
   </lastBuildDate>
-  {% for doc in doc.meta.recent %}
+  {% for rdoc in doc.meta.recent %}
   <item>
-    <title>{{doc.title}}</title>
-    <link>{{doc.output_path | to_url(site_url)}}</link>
-    <guid>{{doc.output_path | to_url(site_url)}}</guid>
-    <description>{{doc | get_summary | escape}}</description>
+    <title>{{ rdoc.title }}</title>
+    <link>{{ rdoc.output_path | prepend: site_url }}</link>
+    <guid>{{ rdoc.output_path | prepend: site_url }}</guid>
+    <description>{{ rdoc.content | escape }}</description>
     <content:encoded><![CDATA[
-      {{doc.content}}
+      {{ rdoc.content }}
     ]]></content:encoded>
-    <pubDate>{{doc.created.strftime("%a, %d %b %Y %H:%M:%S %Z")}}</pubDate>
-    {% if doc.meta.author %}
-      <author>{{doc.meta.author | escape}}</author>
-    {% elif author %}
-      <author>{{author | escape}}</author>
+    <pubDate>{{ doc.created | date: "%a, %d %b %Y %H:%M:%S %Z" }}</pubDate>
+    {% if rdoc.meta.author %}
+      <author>{{ rdoc.meta.author | escape }}</author>
+    {% elsif author %}
+      <author>{{ doc.meta.author | escape }}</author>
     {% endif %}
   </item>
   {% endfor %}
@@ -46,9 +46,7 @@ pub trait RssDocs: Docs {
         let last_build_date = last_build_date.unwrap_or_else(|| Utc::now());
         let recent: Vec<Doc> = self.most_recent(24).collect();
 
-        let data = json!({
-            "site_url": site_url,
-        });
+        let data = json!({});
 
         let rss_doc = Doc::new(
             output_path,
@@ -60,9 +58,9 @@ pub trait RssDocs: Docs {
             title,
             "".to_owned(),
             json!({
-                "description": description,
+                "site_url": site_url,
                 "author": author,
-                "last_build_date": last_build_date,
+                "description": description,
                 "recent": recent,
                 "generator": "Lettersmith"
             }),
