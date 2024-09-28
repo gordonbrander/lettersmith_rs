@@ -15,8 +15,8 @@ const RSS_TEMPLATE: &str = r#"
   {% for rdoc in doc.meta.recent %}
   <item>
     <title>{{ rdoc.title }}</title>
-    <link>{{ rdoc.output_path | prepend: site_url }}</link>
-    <guid>{{ rdoc.output_path | prepend: site_url }}</guid>
+    <link>{{ rdoc.output_path | prepend: doc.meta.site_url }}</link>
+    <guid>{{ rdoc.output_path | prepend: doc.meta.site_url }}</guid>
     <description>{{ rdoc.content | escape }}</description>
     <content:encoded><![CDATA[
       {{ rdoc.content }}
