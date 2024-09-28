@@ -74,19 +74,35 @@ pub fn render(template: &str, context: &model::Object) -> Result<String, Error> 
 }
 
 impl Doc {
-    /// Render doc using a given template string,
-    /// Ignores the template at doc template path and uses string instead.
+    /// Renders the document using a provided template string.
     ///
-    /// The template is provided with `doc` and the additional `data` object
-    /// you pass in.
+    /// This function ignores the template at the document's template path and uses the provided
+    /// string instead. It uses Liquid templates to render the document's content.
+    ///
+    /// # Arguments
+    ///
+    /// * `template` - A string slice that holds the Liquid template to be used for rendering.
+    /// * `site_data` - A reference to a JSON Value containing additional data to be passed to the template.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result<Doc, Error>` which is:
+    /// * `Ok(Doc)` - A new `Doc` instance with the rendered content if successful.
+    /// * `Err(Error)` - An error if the rendering process fails.
+    ///
+    /// # Template Context
+    ///
+    /// The template is provided with two main objects in its context:
+    /// * `doc` - The current doc being rendered.
+    /// * `site` - The additional site data passed in as `site_data`.
     pub fn render_liquid_using_template_string(
         self,
         template: &str,
-        data: &json::Value,
+        site_data: &json::Value,
     ) -> Result<Doc, Error> {
         // Set up the template data
         let context = model::object!({
-            "data": json_to_liquid(&data),
+            "site": json_to_liquid(&site_data),
             "doc": &self
         });
         let content = render(template, &context)?;
@@ -94,12 +110,30 @@ impl Doc {
         Ok(self.set_content(content).set_extension_html())
     }
 
-    /// Render the doc using the template at `template_path` and Liquid
-    /// template system.
+    /// Renders the document using the template at `template_path` and Liquid template system.
     ///
-    /// The template is provided with `doc` and the additional `data` object
-    /// you pass in.
-    pub fn render_liquid(self, data: &json::Value) -> Result<Doc, Error> {
+    /// Reads the template from the document's `template_path`, if it exists,
+    /// and uses it to render the document's content using the Liquid template engine.
+    /// If the document doesn't have a `template_path` set, returns the original
+    /// document unchanged.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The document to be rendered.
+    /// * `site_data` - A reference to a JSON Value containing additional data to be passed to the template.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result<Doc, Error>` which is:
+    /// * `Ok(Doc)` - A new `Doc` instance with the rendered content if successful.
+    /// * `Err(Error)` - An error if the rendering process fails, including if the template file cannot be found.
+    ///
+    /// # Template Context
+    ///
+    /// The template is provided with two main objects in its context:
+    /// * `doc` - The current document being rendered.
+    /// * `site` - The additional site data passed in as `site_data`.
+    pub fn render_liquid(self, site_data: &json::Value) -> Result<Doc, Error> {
         let Some(template_path) = &self.template_path else {
             return Ok(self);
         };
@@ -113,13 +147,13 @@ impl Doc {
                 ),
             )
         })?;
-        self.render_liquid_using_template_string(&template_doc.content, data)
+        self.render_liquid_using_template_string(&template_doc.content, site_data)
     }
 }
 
 pub trait LiquidDocs: Docs {
-    fn render_liquid(self, data: &json::Value) -> impl DocResults {
-        self.map(move |doc| doc.render_liquid(&data))
+    fn render_liquid(self, site_data: &json::Value) -> impl DocResults {
+        self.map(move |doc| doc.render_liquid(&site_data))
     }
 }
 
@@ -129,12 +163,11 @@ impl<I> LiquidDocs for I where I: Docs {}
 mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
-    use serde_json::json;
     use std::path::PathBuf;
 
     #[test]
     fn test_json_to_liquid() {
-        let json_value = json!({
+        let json_value = json::json!({
             "null": null,
             "bool": true,
             "integer": 42,
@@ -183,7 +216,7 @@ mod tests {
             title: "Test Document".to_string(),
             content: "Test content".to_string(),
             template_path: None,
-            meta: json!({"key": "value"}),
+            meta: json::json!({"key": "value"}),
         };
 
         let liquid_obj: model::Object = (&doc).into();
@@ -227,13 +260,13 @@ mod tests {
             modified: Utc.with_ymd_and_hms(2020, 11, 10, 0, 1, 32).unwrap(),
             title: "Test Document".to_string(),
             content: "Original content".to_string(),
-            meta: json!({"key": "value"}),
+            meta: json::json!({"key": "value"}),
         };
 
-        let config = json!({"message": "Hello, World!"});
+        let config = json::json!({"message": "Hello, World!"});
 
         let rendered_doc = doc
-            .render_liquid_using_template_string("{{ data.message }} - {{ data.title }}", &config)
+            .render_liquid_using_template_string("{{ site.message }} - {{ doc.title }}", &config)
             .unwrap();
 
         assert_eq!(rendered_doc.content, "Hello, World! - Test Document");
