@@ -31,7 +31,7 @@ pub struct Config {
     #[serde(default)]
     pub site_author: String,
 
-    /// Data to be passed into template
+    /// Open-ended metadata you want to be available in the template
     #[serde(default = "data_default")]
     pub data: json::Value,
 }
