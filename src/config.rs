@@ -1,13 +1,11 @@
 use crate::error::{Error, ErrorKind};
 use crate::json;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
 /// Reads well-known config properties from lettersmith config file
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
     /// Directory to write built files to
     #[serde(default = "output_dir_default")]
@@ -36,10 +34,6 @@ pub struct Config {
     /// Data to be passed into template
     #[serde(default = "data_default")]
     pub data: json::Value,
-
-    /// Open-ended plugin data
-    #[serde(default = "plugins_default")]
-    pub plugins: HashMap<String, json::Value>,
 }
 
 impl Default for Config {
@@ -52,7 +46,6 @@ impl Default for Config {
             site_description: String::default(),
             site_author: String::default(),
             data: data_default(),
-            plugins: plugins_default(),
         }
     }
 }
@@ -66,15 +59,11 @@ fn template_dir_default() -> PathBuf {
 }
 
 fn site_url_default() -> String {
-    "".to_string()
+    "/".to_string()
 }
 
 fn data_default() -> json::Value {
     json::json!({})
-}
-
-fn plugins_default() -> HashMap<String, json::Value> {
-    HashMap::new()
 }
 
 impl Config {
@@ -89,20 +78,5 @@ impl Config {
     pub fn to_json(&self) -> Result<json::Value, Error> {
         serde_json::to_value(self)
             .map_err(|err| Error::new(ErrorKind::Json(err), "Could not serialize Config to JSON"))
-    }
-
-    /// Get config for a plugin by key, deserializing it into a data structure.
-    /// Data structure must implement `serde::DeserializeOwned`.
-    pub fn get_plugin_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, Error> {
-        let plugin = self
-            .plugins
-            .get(key)
-            .ok_or(Error::new(
-                ErrorKind::ValueError,
-                format!("No plugin config for key {}", key),
-            ))?
-            .to_owned();
-        json::from_value(plugin)
-            .map_err(|err| Error::new(ErrorKind::Json(err), "Could not deserialize plugin config"))
     }
 }

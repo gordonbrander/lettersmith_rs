@@ -6,17 +6,17 @@ const RSS_TEMPLATE: &str = r#"
 <rss version="2.0">
 <channel>
   <title>{{title | escape}}</title>
-  <link>{{base_url}}</link>
+  <link>{{site_url}}</link>
   <description>{{description | escape}}</description>
   <generator>{{generator}}</generator>
   <lastBuildDate>
     {{last_build_date.strftime("%a, %d %b %Y %H:%M:%S %Z")}}
   </lastBuildDate>
-  {% for doc in data.recent %}
+  {% for doc in doc.meta.recent %}
   <item>
     <title>{{doc.title}}</title>
-    <link>{{doc.output_path | to_url(base_url)}}</link>
-    <guid>{{doc.output_path | to_url(base_url)}}</guid>
+    <link>{{doc.output_path | to_url(site_url)}}</link>
+    <guid>{{doc.output_path | to_url(site_url)}}</guid>
     <description>{{doc | get_summary | escape}}</description>
     <content:encoded><![CDATA[
       {{doc.content}}
@@ -35,8 +35,8 @@ const RSS_TEMPLATE: &str = r#"
 
 pub trait RssDocs: Docs {
     fn rss(
-        docs: impl Docs,
-        base_url: &str,
+        self,
+        site_url: &str,
         title: &str,
         description: &str,
         author: &str,
@@ -44,10 +44,10 @@ pub trait RssDocs: Docs {
         last_build_date: Option<DateTime<Utc>>,
     ) -> Result<Doc, Error> {
         let last_build_date = last_build_date.unwrap_or_else(|| Utc::now());
-        let recent: Vec<Doc> = docs.most_recent(24).collect();
+        let recent: Vec<Doc> = self.most_recent(24).collect();
 
         let data = json!({
-            "base_url": base_url,
+            "site_url": site_url,
         });
 
         let rss_doc = Doc::new(
@@ -63,7 +63,8 @@ pub trait RssDocs: Docs {
                 "description": description,
                 "author": author,
                 "last_build_date": last_build_date,
-                "recent": recent
+                "recent": recent,
+                "generator": "Lettersmith"
             }),
         );
 

@@ -1,11 +1,14 @@
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
-use std::path::{Path, PathBuf};
+use std::env;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(version = "0.1.0")]
 #[command(author = "Lettersmith")]
-#[command(about = "Lettersmith is a command line tool for building static sites.")]
+#[command(
+    about = "Lettersmith is a static site generator built around a simple idea: piping JSON documents through stdio. Features are implemented as simple, single-purpose tools. To customize your own static site generator, you string together the features you want using Unix pipes and save those pipelines to a bash file."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -25,36 +28,14 @@ enum Commands {
     #[command(
         about = "Write docs to directory defined in config file. Typically used at the end of a chain of piped smith commands to take the stream of JSON docs and write it to disk."
     )]
-    Write {
-        #[arg(help = "Directory to write files to")]
-        #[arg(value_name = "DIRECTORY")]
-        #[arg(default_value = "public")]
-        output_dir: PathBuf,
-    },
+    Write {},
 
     #[command(about = "Transform docs into markdown blog posts or pages with Liquid templates")]
     Blog {
-        #[arg(long = "site-url")]
-        #[arg(default_value = "/")]
-        #[arg(help = "URL for site. Used to absolutize URLS in the page.")]
-        site_url: String,
-
         #[arg(long = "permalink-template")]
         #[arg(default_value = "{parents}/{slug}/index.html")]
         #[arg(help = "Template for rendering permalinks")]
         permalink_template: String,
-
-        #[arg(long = "template-dir")]
-        #[arg(default_value = "templates")]
-        #[arg(
-            help = "Directory containing templates. Used to qualify template paths when automatically assigning templates by path."
-        )]
-        template_dir: PathBuf,
-
-        #[arg(long = "data")]
-        #[arg(default_value = "data.json")]
-        #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
-        template_data_path: PathBuf,
     },
 
     #[command(about = "Set permalink via a template")]
@@ -66,12 +47,7 @@ enum Commands {
     },
 
     #[command(about = "Render doc with the liquid template set on doc's template_path")]
-    Liquid {
-        #[arg(long = "data")]
-        #[arg(default_value = "data.json")]
-        #[arg(help = "Path to JSON data file. Data will be provided to Liquid template.")]
-        template_data_path: PathBuf,
-    },
+    Liquid {},
 
     #[command(
         about = "Parse and uplift frontmatter. Frontmatter is parsed as YAML and assigned to doc meta. Blessed fields, such as title are assigned to the corresponding field on the doc."
@@ -81,24 +57,16 @@ enum Commands {
 
 /// Read all file paths to docs and stream JSON to stdout.
 fn main() {
+    let config_path = env::var("CONFIG").unwrap_or("lettersmith.json".to_string());
+    let config = Config::read(config_path).unwrap_or(Config::default());
     let cli = Cli::parse();
 
     match cli.command {
         Commands::Read { files } => read(files),
-        Commands::Write { output_dir } => write(&output_dir),
-        Commands::Blog {
-            site_url,
-            permalink_template,
-            template_dir,
-            template_data_path,
-        } => blog(
-            &site_url,
-            &permalink_template,
-            &template_dir,
-            &template_data_path,
-        ),
+        Commands::Write {} => write(&config),
+        Commands::Blog { permalink_template } => blog(&permalink_template, &config),
         Commands::Permalink { permalink_template } => permalink(&permalink_template),
-        Commands::Liquid { template_data_path } => liquid(&template_data_path),
+        Commands::Liquid {} => liquid(&config),
         Commands::Frontmatter {} => frontmatter(),
     }
 }
@@ -110,15 +78,24 @@ fn read(files: Vec<PathBuf>) {
         .write_stdio();
 }
 
-fn write(output_dir: &Path) {
-    docs::read_stdin().panic_at_first_error().write(output_dir);
-}
-
-fn blog(site_url: &str, permalink_template: &str, template_dir: &Path, template_data_path: &Path) {
-    let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
+fn write(config: &Config) {
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_blog_doc(site_url, permalink_template, template_dir, &template_data)
+        .write(&config.output_dir);
+}
+
+fn blog(permalink_template: &str, config: &Config) {
+    let config_json = config
+        .to_json()
+        .expect("Could not serialize config to JSON");
+    docs::read_stdin()
+        .panic_at_first_error()
+        .markdown_blog_doc(
+            &config.site_url,
+            permalink_template,
+            &config.template_dir,
+            &config_json,
+        )
         .panic_at_first_error()
         .write_stdio();
 }
@@ -131,11 +108,13 @@ fn permalink(template: &str) {
 }
 
 /// Render liquid templates
-fn liquid(template_data_path: &Path) {
-    let template_data = json::read(template_data_path).unwrap_or(json::Value::Null);
+fn liquid(config: &Config) {
+    let config_json = config
+        .to_json()
+        .expect("Could not serialize config contents to JSON");
     docs::read_stdin()
         .panic_at_first_error()
-        .render_liquid(&template_data)
+        .render_liquid(&config_json)
         .panic_at_first_error()
         .write_stdio();
 }
