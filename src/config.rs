@@ -11,9 +11,9 @@ pub struct Config {
     #[serde(default = "output_dir_default")]
     pub output_dir: PathBuf,
 
-    /// Directory where templates are stored
-    #[serde(default = "template_dir_default")]
-    pub template_dir: PathBuf,
+    /// Glob for templates to load
+    #[serde(default = "templates_default")]
+    pub templates: String,
 
     /// The site's URL
     #[serde(default = "site_url_default")]
@@ -40,7 +40,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             output_dir: output_dir_default(),
-            template_dir: template_dir_default(),
+            templates: templates_default(),
             site_url: site_url_default(),
             site_title: String::default(),
             site_description: String::default(),
@@ -54,8 +54,8 @@ fn output_dir_default() -> PathBuf {
     PathBuf::from("public")
 }
 
-fn template_dir_default() -> PathBuf {
-    PathBuf::from("templates")
+fn templates_default() -> String {
+    "templates/*.html".to_string()
 }
 
 fn site_url_default() -> String {

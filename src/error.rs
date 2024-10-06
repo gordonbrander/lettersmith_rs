@@ -11,6 +11,7 @@ pub enum ErrorKind {
     Io(std::io::Error),
     Json(serde_json::Error),
     Liquid(liquid::Error),
+    Tera(tera::Error),
     ValueError,
     Other,
 }
@@ -21,6 +22,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::Io(err) => write!(f, "{}", err),
             ErrorKind::Json(err) => write!(f, "{}", err),
             ErrorKind::Liquid(err) => write!(f, "{}", err),
+            ErrorKind::Tera(err) => write!(f, "{}", err),
             ErrorKind::ValueError => write!(f, "{}", "Value error"),
             ErrorKind::Other => write!(f, "{}", "Other"),
         }
@@ -71,5 +73,11 @@ impl From<serde_json::Error> for Error {
 impl From<liquid::Error> for Error {
     fn from(error: liquid::Error) -> Self {
         Error::new(ErrorKind::Liquid(error), "Liquid error")
+    }
+}
+
+impl From<tera::Error> for Error {
+    fn from(error: tera::Error) -> Self {
+        Error::new(ErrorKind::Tera(error), "Tera template error")
     }
 }

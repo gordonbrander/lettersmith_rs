@@ -18,6 +18,7 @@ pub mod rss;
 pub mod sitemap;
 pub mod stub;
 pub mod tags;
+pub mod tera;
 pub mod text;
 pub mod token_template;
 pub mod wikilink;
