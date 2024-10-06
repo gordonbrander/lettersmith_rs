@@ -10,28 +10,28 @@ impl Doc {
     /// Render the content as a Tera template
     pub fn render_tera_in_content(
         self,
-        engine: &mut tera::Tera,
+        renderer: &mut tera::Tera,
         context: &tera::Context,
     ) -> Result<Self, Error> {
-        let content = engine.render_str(&self.content, context)?;
+        let content = renderer.render_str(&self.content, context)?;
         Ok(self.set_content(content))
     }
 
     /// Render a str as a Tera template, assinging the result to content.
     pub fn render_tera_str(
         self,
-        engine: &mut tera::Tera,
+        renderer: &mut tera::Tera,
         template: &str,
         context: &tera::Context,
     ) -> Result<Self, Error> {
-        let content = engine.render_str(template, context)?;
+        let content = renderer.render_str(template, context)?;
         Ok(self.set_content(content))
     }
 
     /// Render the Tera template found at `template_path` and assign result to content
     pub fn render_tera_template(
         self,
-        engine: &tera::Tera,
+        renderer: &tera::Tera,
         context: &tera::Context,
     ) -> Result<Self, Error> {
         let Some(template_path) = &self.template_path else {
@@ -40,7 +40,7 @@ impl Doc {
         let template_name = template_path.to_string_lossy().into_owned();
         let mut context_ext = context.clone();
         context_ext.insert("doc", &self);
-        let content = engine.render(&template_name, &context_ext)?;
+        let content = renderer.render(&template_name, &context_ext)?;
         Ok(self.set_content(content))
     }
 }
@@ -59,24 +59,27 @@ fn filter_markdown(
     Ok(tera::Value::String(rendered))
 }
 
-pub fn create_engine(config: &Config) -> Result<tera::Tera, Error> {
+pub fn create_renderer(config: &Config) -> Result<tera::Tera, Error> {
     let mut tera = tera::Tera::new(&config.templates)?;
     tera.register_filter("markdown", filter_markdown);
-
     Ok(tera)
 }
 
 pub trait TeraDocs: Docs {
-    fn render_tera_template(self, engine: &tera::Tera, context: &tera::Context) -> impl DocResults {
-        self.map(|doc| doc.render_tera_template(engine, context))
+    fn render_tera_template(
+        self,
+        renderer: &tera::Tera,
+        context: &tera::Context,
+    ) -> impl DocResults {
+        self.map(|doc| doc.render_tera_template(renderer, context))
     }
 
     /// Creates a shared Tera instance using the settings in configs
     /// and renders docs with it.
-    fn render_tera_template_from_config(self, config: &Config) -> impl DocResults {
-        let engine = create_engine(config).unwrap();
+    fn render_tera_template_using_config(self, config: &Config) -> impl DocResults {
+        let renderer = create_renderer(config).unwrap();
         let mut context = tera::Context::new();
         context.insert("site", config);
-        self.map(move |doc| doc.render_tera_template(&engine, &context))
+        self.map(move |doc| doc.render_tera_template(&renderer, &context))
     }
 }
