@@ -19,8 +19,9 @@ pub fn to_tag(term: &str) -> String {
 }
 
 /// Given an index-shaped hashmap and a list of keys, return a combined and
-/// deduplicated iterator of the items for those keys.
-pub fn combine_index_values(index: &HashMap<String, Vec<Stub>>, keys: &[String]) -> Vec<Stub> {
+/// deduplicated vector of the items for those keys.
+/// We return a vector instead of a HashSet to allow for ordering/sorting.
+pub fn get_union_for_index_keys(index: &HashMap<String, Vec<Stub>>, keys: &[String]) -> Vec<Stub> {
     let mut stubs: Vec<Stub> = keys
         .iter()
         .flat_map(move |key| {
@@ -74,7 +75,7 @@ impl Doc {
         let Some(tags) = self.get_meta_taxonomy(taxonomy_key) else {
             return self;
         };
-        let related: Vec<Stub> = combine_index_values(&taxonomy_index, &tags);
+        let related: Vec<Stub> = get_union_for_index_keys(&taxonomy_index, &tags);
         self.merge_meta(json!({
             "related": related
         }))
