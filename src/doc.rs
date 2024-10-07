@@ -79,6 +79,21 @@ impl Doc {
         write_file_deep(write_path, &self.content)
     }
 
+    /// Write docs to stdio
+    /// - JSON serialized docs are printed to stdout
+    /// - Serialization failures are printed to stderr
+    pub fn write_stdio(&self) {
+        let serialized = serde_json::to_string(self);
+        match serialized {
+            Ok(json) => {
+                println!("{}", json);
+            }
+            Err(err) => {
+                eprintln!("Error serializing doc: {}", err);
+            }
+        }
+    }
+
     pub fn set_output_path(mut self, output_path: impl AsRef<Path>) -> Self {
         self.output_path = output_path.as_ref().to_path_buf();
         self
