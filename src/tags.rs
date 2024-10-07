@@ -1,9 +1,11 @@
 use crate::doc::Doc;
 use crate::docs::Docs;
+use crate::error::Error;
 use crate::json::{self, json};
 use crate::stub::Stub;
 use crate::text::{remove_non_slug_chars, to_slug};
 use crate::token_template;
+use chrono::Utc;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tap::Pipe;
@@ -37,10 +39,10 @@ pub fn get_union_for_index_keys(index: &HashMap<String, Vec<Stub>>, keys: &[Stri
 }
 
 impl Doc {
-    /// Get get tag string values from meta.
+    /// Get get tags from a taxonomy stored at a meta key.
     /// Sluggifies tags to normalize them for string-matching.
-    pub fn get_meta_taxonomy(&self, key: &str) -> Option<Vec<String>> {
-        match self.meta.get(key) {
+    pub fn get_meta_taxonomy(&self, taxonomy_key: &str) -> Option<Vec<String>> {
+        match self.meta.get(taxonomy_key) {
             Some(json::Value::Array(tag_values)) => {
                 let mut tag_strings: Vec<String> = tag_values
                     .iter()
@@ -52,12 +54,6 @@ impl Doc {
             }
             _ => None,
         }
-    }
-
-    /// Get get tag string values from meta.
-    /// Sluggifies tags to normalize them for string-matching.
-    pub fn get_meta_tags(&self) -> Option<Vec<String>> {
-        self.get_meta_taxonomy("tags")
     }
 
     /// Set "related" key on meta
@@ -80,15 +76,6 @@ impl Doc {
             "related": related
         }))
     }
-
-    /// Given an index, check the tag keys in meta, pluck the related stubs
-    /// and set them on the "related" field of meta.
-    pub fn set_meta_related_from_tag_index(
-        self,
-        taxonomy_index: HashMap<String, Vec<Stub>>,
-    ) -> Self {
-        self.set_meta_related_from_taxonomy_index("tags", taxonomy_index)
-    }
 }
 
 pub trait TaggedDocs: Docs {
@@ -96,10 +83,10 @@ pub trait TaggedDocs: Docs {
     /// Looks for an array in the meta key specified.
     /// Returns a hashmap of stub lists, indexed by term.
     /// Terms are sluggified to normalize them for lookup by key.
-    fn index_by_taxonomy(self, key: &str) -> HashMap<String, Vec<Stub>> {
+    fn index_by_taxonomy(self, taxonomy: &str) -> HashMap<String, Vec<Stub>> {
         let mut tax_index: HashMap<String, Vec<Stub>> = HashMap::new();
         for doc in self {
-            if let Some(json::Value::Array(terms)) = doc.meta.get(key) {
+            if let Some(json::Value::Array(terms)) = doc.meta.get(taxonomy) {
                 for term in terms {
                     if let Some(term) = term.as_str() {
                         tax_index
@@ -113,11 +100,31 @@ pub trait TaggedDocs: Docs {
         tax_index
     }
 
-    /// Index docs by tag
-    /// Looks for an array in the meta key "tags".
-    /// Returns a hashmap of stub lists, indexed by term.
-    fn index_by_tag(&mut self) -> HashMap<String, Vec<Stub>> {
-        self.index_by_taxonomy("tags")
+    /// Creates a stub index from docs and generates a single JSON doc containing
+    /// the JSON-serialized index.
+    ///
+    /// Tip: this method can be used to generate JSON index files which can be pulled in as
+    /// site-level template data.
+    fn generate_taxonomy_index_doc(
+        self,
+        taxonomy: &str,
+        output_path: impl Into<PathBuf>,
+    ) -> Result<Doc, Error> {
+        let index = self.index_by_taxonomy(taxonomy);
+        let json_string = json::to_string_pretty(&index)?;
+        let created = Utc::now();
+        let output_path: PathBuf = output_path.into();
+        Ok(Doc::new(
+            output_path.clone(),
+            output_path,
+            None::<PathBuf>,
+            None::<PathBuf>,
+            created,
+            created,
+            taxonomy,
+            json_string,
+            json!({}),
+        ))
     }
 
     /// Generate taxonomy archive docs for this docs iterator.
@@ -125,14 +132,14 @@ pub trait TaggedDocs: Docs {
     /// Returns a new docs iterator made up of just the archives generated.
     fn generate_taxonomy_archives(
         self,
-        key: &str,
+        taxonomy: &str,
         output_path_template: &str,
         template_path: Option<PathBuf>,
     ) -> impl Docs {
-        let tax_index = self.index_by_taxonomy(key);
+        let tax_index = self.index_by_taxonomy(taxonomy);
         tax_index.into_iter().map(move |(term, stubs)| {
             let mut parts = HashMap::new();
-            parts.insert("taxonomy", to_slug(key));
+            parts.insert("taxonomy", to_slug(taxonomy));
             parts.insert("term", to_slug(&term));
             let output_path = token_template::render(output_path_template, &parts);
             let meta = json!({ "items": stubs });
@@ -149,15 +156,6 @@ pub trait TaggedDocs: Docs {
                 meta,
             }
         })
-    }
-
-    /// Generate tag archive docs for this docs iterator.
-    fn generate_tag_archives(
-        self,
-        output_path_template: &str,
-        template_path: Option<PathBuf>,
-    ) -> impl Docs {
-        self.generate_taxonomy_archives("tags", output_path_template, template_path)
     }
 }
 
