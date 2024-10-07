@@ -4,13 +4,13 @@ use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::markdown::render_markdown;
 use std::collections::HashMap;
-pub use tera;
+pub use tera::{self, Context, Tera};
 
 impl Doc {
     /// Render the content as a Tera template
     pub fn render_tera_in_content(
         self,
-        renderer: &mut tera::Tera,
+        renderer: &mut Tera,
         context: &tera::Context,
     ) -> Result<Self, Error> {
         let content = renderer.render_str(&self.content, context)?;
@@ -20,7 +20,7 @@ impl Doc {
     /// Render a str as a Tera template, assinging the result to content.
     pub fn render_tera_str(
         self,
-        renderer: &mut tera::Tera,
+        renderer: &mut Tera,
         template: &str,
         context: &tera::Context,
     ) -> Result<Self, Error> {
@@ -31,7 +31,7 @@ impl Doc {
     /// Render the Tera template found at `template_path` and assign result to content
     pub fn render_tera_template(
         self,
-        renderer: &tera::Tera,
+        renderer: &Tera,
         context: &tera::Context,
     ) -> Result<Self, Error> {
         let Some(template_path) = &self.template_path else {
@@ -59,27 +59,25 @@ fn filter_markdown(
     Ok(tera::Value::String(rendered))
 }
 
-pub fn create_renderer(config: &Config) -> Result<tera::Tera, Error> {
-    let mut tera = tera::Tera::new(&config.templates)?;
+pub fn create_renderer(templates: &str) -> Result<Tera, Error> {
+    let mut tera = Tera::new(&templates)?;
     tera.register_filter("markdown", filter_markdown);
     Ok(tera)
 }
 
 pub trait TeraDocs: Docs {
-    fn render_tera_template(
-        self,
-        renderer: &tera::Tera,
-        context: &tera::Context,
-    ) -> impl DocResults {
+    fn render_tera_template(self, renderer: &Tera, context: &tera::Context) -> impl DocResults {
         self.map(|doc| doc.render_tera_template(renderer, context))
     }
 
     /// Creates a shared Tera instance using the settings in configs
     /// and renders docs with it.
-    fn render_tera_template_using_config(self, config: &Config) -> impl DocResults {
-        let renderer = create_renderer(config).unwrap();
+    fn render_tera_template_with_config(self, config: &Config) -> impl DocResults {
+        let renderer = create_renderer(&config.templates).unwrap();
         let mut context = tera::Context::new();
-        context.insert("site", config);
+        context.insert("config", config);
         self.map(move |doc| doc.render_tera_template(&renderer, &context))
     }
 }
+
+impl<T> TeraDocs for T where T: Docs {}

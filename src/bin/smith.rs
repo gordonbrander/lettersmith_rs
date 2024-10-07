@@ -85,17 +85,9 @@ fn write(config: &Config) {
 }
 
 fn blog(permalink_template: &str, config: &Config) {
-    let config_json = config
-        .to_json()
-        .expect("Could not serialize config to JSON");
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_blog_doc(
-            &config.site_url,
-            permalink_template,
-            &config.template_dir,
-            &config_json,
-        )
+        .markdown_blog_doc_with_config(permalink_template, &config)
         .panic_at_first_error()
         .write_stdio();
 }
