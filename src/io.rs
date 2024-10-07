@@ -30,9 +30,7 @@ where
 {
     iter.map(|result| match result {
         Ok(value) => value,
-        Err(err) => {
-            panic!("{}", err);
-        }
+        Err(err) => panic!("{}", err),
     })
 }
 

@@ -88,6 +88,7 @@ fn blog(permalink_template: &str, config: &Config) {
     docs::read_stdin()
         .panic_at_first_error()
         .markdown_blog_doc_with_config(permalink_template, config)
+        .unwrap()
         .panic_at_first_error()
         .write_stdio();
 }
@@ -103,7 +104,8 @@ fn permalink(template: &str) {
 fn template(config: &Config) {
     docs::read_stdin()
         .panic_at_first_error()
-        .render_tera_template_with_config(config)
+        .render_tera_template_with_config(&config)
+        .unwrap()
         .panic_at_first_error()
         .write_stdio();
 }

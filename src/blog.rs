@@ -1,6 +1,7 @@
 use crate::absolutize::AbsolutizableDocs;
 use crate::config::Config;
 use crate::docs::{DocResults, Docs};
+use crate::error::Error;
 use crate::permalink::PermalinkDocs;
 use crate::prelude::{FrontmatterDocs, MarkdownDocs};
 use crate::tera::TeraDocs;
@@ -10,7 +11,7 @@ pub trait BlogDocs: Docs {
         self,
         permalink_template: &str,
         config: &Config,
-    ) -> impl DocResults {
+    ) -> Result<impl DocResults, Error> {
         self.parse_and_uplift_frontmatter()
             .set_permalink(permalink_template)
             .autotemplate()

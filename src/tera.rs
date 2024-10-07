@@ -5,6 +5,7 @@ use crate::error::Error;
 use crate::markdown::render_markdown;
 use chrono::Utc;
 use std::collections::HashMap;
+use tap::Pipe;
 pub use tera::{self, Context, Tera};
 
 impl Doc {
@@ -60,10 +61,19 @@ fn filter_markdown(
     Ok(tera::Value::String(rendered))
 }
 
-pub fn create_renderer(templates: &str) -> Result<Tera, Error> {
-    let mut tera = Tera::new(&templates)?;
-    tera.register_filter("markdown", filter_markdown);
-    Ok(tera)
+/// Decorate Tera instance with default Lettersmith configuration
+pub fn decorate_renderer(renderer: Tera) -> Tera {
+    let mut renderer = renderer;
+    renderer.register_filter("markdown", filter_markdown);
+    renderer
+}
+
+/// Decorate Tera context with default Lettersmith configuration
+pub fn decorate_context(context: Context) -> Context {
+    let mut context = context;
+    let now = Utc::now();
+    context.insert("now", &now);
+    context
 }
 
 pub trait TeraDocs: Docs {
@@ -71,15 +81,11 @@ pub trait TeraDocs: Docs {
         self.map(|doc| doc.render_tera_template(renderer, context))
     }
 
-    /// Creates a shared Tera instance using the settings in configs
-    /// and renders docs with it.
-    fn render_tera_template_with_config(self, config: &Config) -> impl DocResults {
-        let renderer = create_renderer(&config.templates).unwrap();
-        let mut context = tera::Context::new();
-        let now = Utc::now();
-        context.insert("now", &now);
+    fn render_tera_template_with_config(self, config: &Config) -> Result<impl DocResults, Error> {
+        let renderer = Tera::new(&config.templates)?.pipe(decorate_renderer);
+        let mut context = tera::Context::new().pipe(decorate_context);
         context.insert("site", config);
-        self.map(move |doc| doc.render_tera_template(&renderer, &context))
+        Ok(self.map(move |doc| doc.render_tera_template(&renderer, &context)))
     }
 }
 
