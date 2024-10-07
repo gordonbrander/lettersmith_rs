@@ -1,11 +1,9 @@
-use crate::config::Config;
 use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::markdown::render_markdown;
 use chrono::Utc;
 use std::collections::HashMap;
-use tap::Pipe;
 pub use tera::{self, Context, Tera};
 
 impl Doc {
@@ -90,13 +88,6 @@ pub fn context() -> Context {
 pub trait TeraDocs: Docs {
     fn render_tera_template(self, renderer: &Tera, context: &tera::Context) -> impl DocResults {
         self.map(|doc| doc.render_tera_template(renderer, context))
-    }
-
-    fn render_tera_template_with_config(self, config: &Config) -> Result<impl DocResults, Error> {
-        let renderer = Tera::new(&config.templates)?.pipe(decorate_renderer);
-        let mut context = tera::Context::new().pipe(decorate_context);
-        context.insert("site", config);
-        Ok(self.map(move |doc| doc.render_tera_template(&renderer, &context)))
     }
 }
 

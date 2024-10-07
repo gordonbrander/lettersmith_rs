@@ -85,10 +85,14 @@ fn write(config: &Config) {
 }
 
 fn blog(permalink_template: &str, config: &Config) {
+    // Set up Tera instance
+    let renderer = tera::renderer(&config.templates).unwrap();
+    let mut context = tera::context();
+    context.insert("site", config);
+
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_blog_doc_with_config(permalink_template, config)
-        .unwrap()
+        .markdown_blog_doc(permalink_template, &config.site_url, &renderer, &context)
         .panic_at_first_error()
         .write_stdio();
 }
