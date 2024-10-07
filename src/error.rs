@@ -10,7 +10,6 @@ pub struct Error {
 pub enum ErrorKind {
     Io(std::io::Error),
     Json(serde_json::Error),
-    Liquid(liquid::Error),
     Tera(tera::Error),
     ValueError,
     Other,
@@ -21,7 +20,6 @@ impl fmt::Display for ErrorKind {
         match self {
             ErrorKind::Io(err) => write!(f, "{}", err),
             ErrorKind::Json(err) => write!(f, "{}", err),
-            ErrorKind::Liquid(err) => write!(f, "{}", err),
             ErrorKind::Tera(err) => write!(f, "{}", err),
             ErrorKind::ValueError => write!(f, "{}", "Value error"),
             ErrorKind::Other => write!(f, "{}", "Other"),
@@ -43,7 +41,7 @@ impl std::error::Error for Error {
         match &self.kind {
             ErrorKind::Io(error) => Some(error),
             ErrorKind::Json(error) => Some(error),
-            ErrorKind::Liquid(error) => Some(error),
+            ErrorKind::Tera(error) => Some(error),
             _ => None,
         }
     }
@@ -67,12 +65,6 @@ impl From<std::io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(error: serde_json::Error) -> Self {
         Error::new(ErrorKind::Json(error), "JSON error")
-    }
-}
-
-impl From<liquid::Error> for Error {
-    fn from(error: liquid::Error) -> Self {
-        Error::new(ErrorKind::Liquid(error), "Liquid error")
     }
 }
 
