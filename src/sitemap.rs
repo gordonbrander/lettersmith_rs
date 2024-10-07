@@ -3,6 +3,7 @@ use crate::docs::Docs;
 use crate::error::Error;
 use crate::json::json;
 use crate::stub::{Stub, StubDocs};
+use crate::tera::{Context, Tera};
 use chrono::Utc;
 use std::path::PathBuf;
 
@@ -37,12 +38,11 @@ pub trait SitemapDocs: Docs {
             meta: json!({}),
         };
 
-        let data = json!({
-            "base_url": base_url,
-            "sitemap_items": stubs_50k
-        });
-
-        sitemap.render_liquid_using_template_string(SITEMAP_TEMPLATE, &data)
+        let mut renderer = Tera::default();
+        let mut context = Context::new();
+        context.insert("base_url", base_url);
+        context.insert("sitemap_items", &stubs_50k);
+        sitemap.render_tera_str(&mut renderer, SITEMAP_TEMPLATE, &context)
     }
 }
 

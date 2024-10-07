@@ -10,7 +10,6 @@ pub mod frontmatter;
 pub mod html;
 pub mod io;
 pub mod json;
-pub mod liquid;
 pub mod markdown;
 pub mod permalink;
 pub mod prelude;

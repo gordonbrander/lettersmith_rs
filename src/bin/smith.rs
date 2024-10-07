@@ -30,7 +30,7 @@ enum Commands {
     )]
     Write {},
 
-    #[command(about = "Transform docs into markdown blog posts or pages with Liquid templates")]
+    #[command(about = "Render markdown and templates for blog posts or pages")]
     Blog {
         #[arg(long = "permalink-template")]
         #[arg(default_value = "{parents}/{slug}/index.html")]
@@ -46,8 +46,8 @@ enum Commands {
         permalink_template: String,
     },
 
-    #[command(about = "Render doc with the liquid template set on doc's template_path")]
-    Liquid {},
+    #[command(about = "Render doc with the Tera template set on doc's template_path")]
+    Template {},
 
     #[command(
         about = "Parse and uplift frontmatter. Frontmatter is parsed as YAML and assigned to doc meta. Blessed fields, such as title are assigned to the corresponding field on the doc."
@@ -66,7 +66,7 @@ fn main() {
         Commands::Write {} => write(&config),
         Commands::Blog { permalink_template } => blog(&permalink_template, &config),
         Commands::Permalink { permalink_template } => permalink(&permalink_template),
-        Commands::Liquid {} => liquid(&config),
+        Commands::Template {} => template(&config),
         Commands::Frontmatter {} => frontmatter(),
     }
 }
@@ -100,13 +100,10 @@ fn permalink(template: &str) {
 }
 
 /// Render liquid templates
-fn liquid(config: &Config) {
-    let config_json = config
-        .to_json()
-        .expect("Could not serialize config contents to JSON");
+fn template(config: &Config) {
     docs::read_stdin()
         .panic_at_first_error()
-        .render_liquid(&config_json)
+        .render_tera_template_with_config(config)
         .panic_at_first_error()
         .write_stdio();
 }

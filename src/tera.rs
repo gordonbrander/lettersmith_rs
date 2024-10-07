@@ -45,7 +45,7 @@ impl Doc {
     }
 }
 
-/// Liquid filter to render text as Markdown
+/// Filter to render text as Markdown
 fn filter_markdown(
     value: &tera::Value,
     _: &HashMap<String, tera::Value>,
