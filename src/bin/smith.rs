@@ -87,7 +87,7 @@ fn write(config: &Config) {
 fn blog(permalink_template: &str, config: &Config) {
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_blog_doc_with_config(permalink_template, &config)
+        .markdown_blog_doc_with_config(permalink_template, config)
         .panic_at_first_error()
         .write_stdio();
 }

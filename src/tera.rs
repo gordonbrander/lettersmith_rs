@@ -3,6 +3,7 @@ use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::markdown::render_markdown;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 pub use tera::{self, Context, Tera};
 
@@ -75,7 +76,9 @@ pub trait TeraDocs: Docs {
     fn render_tera_template_with_config(self, config: &Config) -> impl DocResults {
         let renderer = create_renderer(&config.templates).unwrap();
         let mut context = tera::Context::new();
-        context.insert("config", config);
+        let now = Utc::now();
+        context.insert("now", &now);
+        context.insert("site", config);
         self.map(move |doc| doc.render_tera_template(&renderer, &context))
     }
 }
