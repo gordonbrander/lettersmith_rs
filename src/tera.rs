@@ -3,7 +3,7 @@ use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::markdown::render_markdown;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
 pub use tera::{self, Context, Tera};
 
