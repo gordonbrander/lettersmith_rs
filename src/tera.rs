@@ -61,19 +61,30 @@ fn filter_markdown(
     Ok(tera::Value::String(rendered))
 }
 
-/// Decorate Tera instance with default Lettersmith configuration
+/// Decorate Tera instance with Lettersmith-specific configuration
 pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
     renderer.register_filter("markdown", filter_markdown);
     renderer
 }
 
-/// Decorate Tera context with default Lettersmith configuration
+/// Create a Tera renderer with Lettersmith-specific configuration.
+pub fn renderer(templates: &str) -> Result<Tera, Error> {
+    let tera = Tera::new(templates)?;
+    Ok(decorate_renderer(tera))
+}
+
+/// Decorate Tera context with default Lettersmith variables
 pub fn decorate_context(context: Context) -> Context {
     let mut context = context;
     let now = Utc::now();
     context.insert("now", &now);
     context
+}
+
+/// Create a Tera context with default Lettersmith variables
+pub fn context() -> Context {
+    decorate_context(Context::new())
 }
 
 pub trait TeraDocs: Docs {

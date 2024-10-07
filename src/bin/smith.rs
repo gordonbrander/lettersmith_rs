@@ -102,10 +102,14 @@ fn permalink(template: &str) {
 
 /// Render liquid templates
 fn template(config: &Config) {
+    // Set up Tera instance
+    let renderer = tera::renderer(&config.templates).unwrap();
+    let mut context = tera::context();
+    context.insert("site", config);
+
     docs::read_stdin()
         .panic_at_first_error()
-        .render_tera_template_with_config(&config)
-        .unwrap()
+        .render_tera_template(&renderer, &context)
         .panic_at_first_error()
         .write_stdio();
 }
