@@ -24,8 +24,8 @@ pub fn truncate(text: &str, max_chars: usize, suffix: &str) -> String {
     if stripped.len() <= max_chars {
         return stripped.to_string();
     }
-    let substr = &stripped[..max_chars.min(stripped.len())];
-    let words: Vec<&str> = substr.split_whitespace().collect();
+    let substring: String = text.chars().take(max_chars - 1).collect();
+    let words: Vec<&str> = substring.split_whitespace().collect();
     let truncated = words[..words.len() - 1].join(" ");
     truncated + suffix
 }
