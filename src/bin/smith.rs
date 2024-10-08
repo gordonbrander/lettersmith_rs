@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
+use lettersmith::tags::TaggedDocs;
 use std::env;
 use std::path::PathBuf;
 
@@ -64,6 +65,19 @@ enum Commands {
     },
 
     #[command(
+        about = "Generate a tag index from docs. You can use this command to generate a JSON file containing a tag index which you can include in templates via the --data flag"
+    )]
+    Tagindex {
+        #[arg(help = "Output path for data file")]
+        #[arg(value_name = "FILE")]
+        output_path: PathBuf,
+
+        #[arg(long = "taxonomy")]
+        #[arg(default_value = "tags")]
+        taxonomy: String,
+    },
+
+    #[command(
         about = "Parse and uplift frontmatter. Frontmatter is parsed as YAML and assigned to doc meta. Blessed fields, such as title are assigned to the corresponding field on the doc."
     )]
     Frontmatter {},
@@ -84,6 +98,10 @@ fn main() {
         } => blog(&permalink_template, &data, &config),
         Commands::Permalink { permalink_template } => permalink(&permalink_template),
         Commands::Template { data } => template(&data, &config),
+        Commands::Tagindex {
+            output_path,
+            taxonomy,
+        } => tagindex(taxonomy, output_path),
         Commands::Frontmatter {} => frontmatter(),
     }
 }
@@ -124,7 +142,7 @@ fn permalink(template: &str) {
         .write_stdio();
 }
 
-/// Render liquid templates
+/// Render Tera templates
 fn template(data_files: &Vec<PathBuf>, config: &Config) {
     let data = json::read_json_files_as_data_map(data_files).unwrap();
 
@@ -138,6 +156,15 @@ fn template(data_files: &Vec<PathBuf>, config: &Config) {
         .panic_at_first_error()
         .render_tera_template(&renderer, &context)
         .panic_at_first_error()
+        .write_stdio();
+}
+
+/// Index all docs by tag and create JSON doc
+fn tagindex(taxonomy: String, output_path: PathBuf) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .generate_tag_index_doc(&taxonomy, &output_path)
+        .unwrap()
         .write_stdio();
 }
 
