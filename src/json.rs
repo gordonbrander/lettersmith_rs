@@ -1,12 +1,15 @@
-use crate::error::Error;
+use crate::error::{Error, ErrorKind};
 use crate::io::write_file_deep;
+use crate::json;
 use serde::Serialize;
 pub use serde_json::from_str;
 pub use serde_json::from_value;
 pub use serde_json::{json, to_string_pretty, Value};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use std::path::PathBuf;
 
 /// Read a JSON file, returning a result of the JSON value.
 pub fn read(path: impl AsRef<Path>) -> Result<Value, Error> {
@@ -24,6 +27,20 @@ where
 {
     let content = to_string_pretty(&json)?;
     write_file_deep(path, &content)
+}
+
+pub fn read_json_data(paths: &Vec<PathBuf>) -> Result<HashMap<String, json::Value>, Error> {
+    let mut data: HashMap<String, json::Value> = HashMap::new();
+    for path in paths {
+        let stem = path
+            .file_stem()
+            .ok_or(Error::new(ErrorKind::Other, "Could not unwrap file stem"))?
+            .to_string_lossy()
+            .into_owned();
+        let value = read(path)?;
+        data.insert(stem, value);
+    }
+    Ok(data)
 }
 
 /// Merge two JSON values together

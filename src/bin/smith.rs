@@ -47,7 +47,14 @@ enum Commands {
     },
 
     #[command(about = "Render doc with the Tera template set on doc's template_path")]
-    Template {},
+    Template {
+        #[arg(
+            help = "JSON files to include in template context. Example: smith template --data data/*.json"
+        )]
+        #[arg(long = "data")]
+        #[arg(value_name = "FILE")]
+        data: Vec<PathBuf>,
+    },
 
     #[command(
         about = "Parse and uplift frontmatter. Frontmatter is parsed as YAML and assigned to doc meta. Blessed fields, such as title are assigned to the corresponding field on the doc."
@@ -66,7 +73,7 @@ fn main() {
         Commands::Write {} => write(&config),
         Commands::Blog { permalink_template } => blog(&permalink_template, &config),
         Commands::Permalink { permalink_template } => permalink(&permalink_template),
-        Commands::Template {} => template(&config),
+        Commands::Template { data } => template(&config, &data),
         Commands::Frontmatter {} => frontmatter(),
     }
 }
@@ -105,10 +112,13 @@ fn permalink(template: &str) {
 }
 
 /// Render liquid templates
-fn template(config: &Config) {
+fn template(config: &Config, data_files: &Vec<PathBuf>) {
+    let data = json::read_json_data(data_files).unwrap();
+
     // Set up Tera instance
     let renderer = tera::renderer(&config.templates).unwrap();
     let mut context = tera::context();
+    context.insert("data", &data);
     context.insert("site", config);
 
     docs::read_stdin()
