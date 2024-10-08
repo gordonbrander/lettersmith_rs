@@ -1,6 +1,7 @@
 use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
+use crate::json::get_deep;
 use crate::markdown::render_markdown;
 use crate::stub::Stub;
 use crate::tags::get_union_for_index_keys;
@@ -93,14 +94,26 @@ fn filter_related(
     value: &tera::Value,
     args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let index = try_get_value!("related", "value", HashMap<String, Vec<Stub>>, value);
-    let Some(tags_value) = args.get("tags") else {
+    let tags: Vec<String> = tera::from_value(value.to_owned()).unwrap_or(Vec::new());
+    let Some(index_value) = args.get("index") else {
         return Ok(tera::Value::Array(Vec::new()));
     };
-    let tags: Vec<String> = tera::from_value(tags_value.to_owned()).unwrap_or(Vec::new());
+    let index = try_get_value!("related", "value", HashMap<String, Vec<Stub>>, index_value);
     let union = get_union_for_index_keys(&index, &tags);
     let value = tera::to_value(union)?;
     return Ok(value);
+}
+
+fn filter_get_deep(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let path = match args.get("path") {
+        Some(path_value) => try_get_value!("get_deep", "path", String, path_value),
+        None => return Err(tera::Error::msg("get_deep requires path argument")),
+    };
+    let default = args.get("default").unwrap_or(&tera::Value::Null).to_owned();
+    return Ok(get_deep(value, &path).unwrap_or(default));
 }
 
 /// Decorate Tera instance with Lettersmith-specific configuration
@@ -108,6 +121,7 @@ pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
     renderer.register_filter("related", filter_related);
     renderer.register_filter("markdown", filter_markdown);
+    renderer.register_filter("get_deep", filter_get_deep);
     renderer
 }
 

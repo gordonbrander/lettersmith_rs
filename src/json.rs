@@ -66,3 +66,42 @@ pub fn merge(a: &mut Value, b: Value) {
 
     *a = b;
 }
+
+/// Get a deep property from a JSON value using dot notation
+/// Returns Value or None.
+pub fn get_deep(value: &Value, prop: &str) -> Option<Value> {
+    let mut current = value;
+    for key in prop.split('.') {
+        match current.get(key) {
+            Some(v) => current = v,
+            None => return None,
+        }
+    }
+    Some(current.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_deep() {
+        let json = json!({
+            "a": {
+                "b": {
+                    "c": "value"
+                }
+            },
+            "x": 42
+        });
+
+        assert_eq!(
+            get_deep(&json, "a.b.c"),
+            Some(Value::String("value".to_string()))
+        );
+        assert_eq!(get_deep(&json, "x"), Some(Value::Number(42.into())));
+        assert_eq!(get_deep(&json, "a.b"), Some(json!({"c": "value"})));
+        assert_eq!(get_deep(&json, "nonexistent"), None);
+        assert_eq!(get_deep(&json, "a.nonexistent"), None);
+    }
+}
