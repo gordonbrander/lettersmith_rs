@@ -20,7 +20,7 @@ impl fmt::Display for ErrorKind {
         match self {
             ErrorKind::Io(err) => write!(f, "{}", err),
             ErrorKind::Json(err) => write!(f, "{}", err),
-            ErrorKind::Tera(err) => write!(f, "{}", err),
+            ErrorKind::Tera(err) => write!(f, "{:?}", err),
             ErrorKind::Value => write!(f, "{}", "Value error"),
             ErrorKind::Other => write!(f, "{}", "Other"),
         }
