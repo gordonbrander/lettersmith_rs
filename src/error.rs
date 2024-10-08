@@ -11,7 +11,7 @@ pub enum ErrorKind {
     Io(std::io::Error),
     Json(serde_json::Error),
     Tera(tera::Error),
-    ValueError,
+    Value,
     Other,
 }
 
@@ -21,7 +21,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::Io(err) => write!(f, "{}", err),
             ErrorKind::Json(err) => write!(f, "{}", err),
             ErrorKind::Tera(err) => write!(f, "{}", err),
-            ErrorKind::ValueError => write!(f, "{}", "Value error"),
+            ErrorKind::Value => write!(f, "{}", "Value error"),
             ErrorKind::Other => write!(f, "{}", "Other"),
         }
     }
@@ -32,6 +32,20 @@ impl Error {
         Error {
             msg: msg.into(),
             kind,
+        }
+    }
+
+    pub fn value(msg: impl Into<String>) -> Self {
+        Error {
+            msg: msg.into(),
+            kind: ErrorKind::Value,
+        }
+    }
+
+    pub fn other(msg: impl Into<String>) -> Self {
+        Error {
+            msg: msg.into(),
+            kind: ErrorKind::Other,
         }
     }
 }
