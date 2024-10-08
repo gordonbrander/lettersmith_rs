@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
-use lettersmith::tags::TaggedDocs;
 use std::env;
 use std::path::PathBuf;
 

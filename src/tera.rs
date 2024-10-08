@@ -2,9 +2,11 @@ use crate::doc::Doc;
 use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::markdown::render_markdown;
+use crate::stub::Stub;
+use crate::tags::get_union_for_index_keys;
 use chrono::Utc;
 use std::collections::HashMap;
-pub use tera::{self, Context, Tera};
+pub use tera::{self, try_get_value, Context, Tera};
 
 impl Doc {
     /// Render the content as a Tera template
@@ -45,7 +47,17 @@ impl Doc {
     }
 }
 
-/// Filter to render text as Markdown
+/// Tera filter to render text as Markdown
+/// You can use this filter in block position to render a block of
+/// text as Markdown within a Tera template.
+///
+/// Example:
+/// ```tera
+/// {% filter markdown %}
+/// # Hello Markdown
+/// This is _Markdown_.
+/// {% endfilter %}
+/// ```
 fn filter_markdown(
     value: &tera::Value,
     _: &HashMap<String, tera::Value>,
@@ -59,9 +71,46 @@ fn filter_markdown(
     Ok(tera::Value::String(rendered))
 }
 
+/// Retrieves related stubs from an index.
+///
+/// This function is used as a Tera filter to find related stubs based on provided tags.
+///
+/// # Arguments
+///
+/// * `value` - The filter value: An index object that maps tag terms to arrays of stub values.
+/// * `args` - A HashMap containing the `tags` argument, which is an array of tags to find related stubs for.
+///
+/// # Returns
+///
+/// Returns a `tera::Result<tera::Value>` containing the related stubs.
+///
+/// # Example
+///
+/// ```tera
+/// {{ data.tags | related(tags=doc.meta.tags) }}
+/// ```
+fn filter_related(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let index = try_get_value!("related", "value", HashMap<String, Vec<Stub>>, value);
+    let tags = match args.get("index") {
+        Some(tags_value) => try_get_value!("related", "tags", Vec<String>, tags_value),
+        None => {
+            return Err(tera::Error::msg(
+                "The `related` filter has to have an `tags` argument",
+            ))
+        }
+    };
+    let union = get_union_for_index_keys(&index, &tags);
+    let value = tera::to_value(union)?;
+    return Ok(value);
+}
+
 /// Decorate Tera instance with Lettersmith-specific configuration
 pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
+    renderer.register_filter("related", filter_related);
     renderer.register_filter("markdown", filter_markdown);
     renderer
 }
