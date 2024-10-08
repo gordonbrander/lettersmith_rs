@@ -162,6 +162,7 @@ fn template(data_files: &Vec<PathBuf>, config: &Config) {
 fn tagindex(taxonomy: String, output_path: PathBuf) {
     docs::read_stdin()
         .panic_at_first_error()
+        .parse_and_uplift_frontmatter()
         .generate_tag_index_doc(&taxonomy, &output_path)
         .unwrap()
         .write_stdio();
