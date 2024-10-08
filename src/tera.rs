@@ -94,14 +94,10 @@ fn filter_related(
     args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
     let index = try_get_value!("related", "value", HashMap<String, Vec<Stub>>, value);
-    let tags = match args.get("index") {
-        Some(tags_value) => try_get_value!("related", "tags", Vec<String>, tags_value),
-        None => {
-            return Err(tera::Error::msg(
-                "The `related` filter has to have an `tags` argument",
-            ))
-        }
+    let Some(tags_value) = args.get("tags") else {
+        return Ok(tera::Value::Array(Vec::new()));
     };
+    let tags: Vec<String> = tera::from_value(tags_value.to_owned()).unwrap_or(Vec::new());
     let union = get_union_for_index_keys(&index, &tags);
     let value = tera::to_value(union)?;
     return Ok(value);
