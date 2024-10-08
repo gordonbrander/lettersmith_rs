@@ -29,7 +29,12 @@ where
     write_file_deep(path, &content)
 }
 
-pub fn read_json_data(paths: &Vec<PathBuf>) -> Result<HashMap<String, json::Value>, Error> {
+/// Read a series of paths to JSON files into hashmap of `data` for templates.
+/// Returns a Result of `HashMap<String, json::Value>`, where string keys
+/// are the file stems of the JSON files.
+pub fn read_json_files_as_data_map(
+    paths: &Vec<PathBuf>,
+) -> Result<HashMap<String, json::Value>, Error> {
     let mut data: HashMap<String, json::Value> = HashMap::new();
     for path in paths {
         let stem = path

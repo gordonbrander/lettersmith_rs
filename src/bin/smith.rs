@@ -36,6 +36,13 @@ enum Commands {
         #[arg(default_value = "{parents}/{slug}/index.html")]
         #[arg(help = "Template for rendering permalinks")]
         permalink_template: String,
+
+        #[arg(
+            help = "JSON files to include in template context. Example: smith template --data data/*.json"
+        )]
+        #[arg(long = "data")]
+        #[arg(value_name = "FILE")]
+        data: Vec<PathBuf>,
     },
 
     #[command(about = "Set permalink via a template")]
@@ -71,9 +78,12 @@ fn main() {
     match cli.command {
         Commands::Read { files } => read(files),
         Commands::Write {} => write(&config),
-        Commands::Blog { permalink_template } => blog(&permalink_template, &config),
+        Commands::Blog {
+            permalink_template,
+            data,
+        } => blog(&permalink_template, &data, &config),
         Commands::Permalink { permalink_template } => permalink(&permalink_template),
-        Commands::Template { data } => template(&config, &data),
+        Commands::Template { data } => template(&data, &config),
         Commands::Frontmatter {} => frontmatter(),
     }
 }
@@ -91,10 +101,13 @@ fn write(config: &Config) {
         .write(&config.output_dir);
 }
 
-fn blog(permalink_template: &str, config: &Config) {
+fn blog(permalink_template: &str, data_files: &Vec<PathBuf>, config: &Config) {
+    let data = json::read_json_files_as_data_map(data_files).unwrap();
+
     // Set up Tera instance
     let renderer = tera::renderer(&config.templates).unwrap();
     let mut context = tera::context();
+    context.insert("data", &data);
     context.insert("site", config);
 
     docs::read_stdin()
@@ -112,8 +125,8 @@ fn permalink(template: &str) {
 }
 
 /// Render liquid templates
-fn template(config: &Config, data_files: &Vec<PathBuf>) {
-    let data = json::read_json_data(data_files).unwrap();
+fn template(data_files: &Vec<PathBuf>, config: &Config) {
+    let data = json::read_json_files_as_data_map(data_files).unwrap();
 
     // Set up Tera instance
     let renderer = tera::renderer(&config.templates).unwrap();
