@@ -2,15 +2,11 @@ use crate::error::{Error, ErrorKind};
 use crate::json;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Reads well-known config properties from lettersmith config file
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
-    /// Directory to write built files to
-    #[serde(default = "output_dir_default")]
-    pub output_dir: PathBuf,
-
     /// Glob for templates to load
     #[serde(default = "templates_default")]
     pub templates: String,
@@ -39,7 +35,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            output_dir: output_dir_default(),
             templates: templates_default(),
             site_url: site_url_default(),
             site_title: String::default(),
@@ -48,10 +43,6 @@ impl Default for Config {
             data: data_default(),
         }
     }
-}
-
-fn output_dir_default() -> PathBuf {
-    PathBuf::from("public")
 }
 
 fn templates_default() -> String {

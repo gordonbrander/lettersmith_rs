@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(version = "0.1.0")]
@@ -26,9 +26,14 @@ enum Commands {
     },
 
     #[command(
-        about = "Write docs to directory defined in config file. Typically used at the end of a chain of piped smith commands to take the stream of JSON docs and write it to disk."
+        about = "Write docs to a directory. Typically used at the end of a chain of piped smith commands to take the stream of JSON docs and write it to disk."
     )]
-    Write {},
+    Write {
+        #[arg(help = "Directory to write docs to")]
+        #[arg(value_name = "DIRECTORY")]
+        #[arg(default_value = "public")]
+        output_dir: PathBuf,
+    },
 
     #[command(about = "Render markdown and templates for blog posts or pages")]
     Blog {
@@ -90,7 +95,7 @@ fn main() {
 
     match cli.command {
         Commands::Read { files } => read(files),
-        Commands::Write {} => write(&config),
+        Commands::Write { output_dir } => write(output_dir.as_path()),
         Commands::Blog {
             permalink_template,
             data,
@@ -112,10 +117,8 @@ fn read(files: Vec<PathBuf>) {
         .write_stdio();
 }
 
-fn write(config: &Config) {
-    docs::read_stdin()
-        .panic_at_first_error()
-        .write(&config.output_dir);
+fn write(output_dir: &Path) {
+    docs::read_stdin().panic_at_first_error().write(output_dir);
 }
 
 fn blog(permalink_template: &str, data_files: &Vec<PathBuf>, config: &Config) {
