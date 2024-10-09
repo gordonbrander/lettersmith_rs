@@ -14,7 +14,7 @@ pub trait BlogDocs: Docs {
     ) -> impl DocResults {
         self.parse_and_uplift_frontmatter()
             .set_permalink(permalink_template)
-            .autotemplate()
+            .auto_template()
             .render_markdown()
             .absolutize_urls(&site_url)
             .render_tera_template(renderer, context)

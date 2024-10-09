@@ -117,11 +117,12 @@ pub trait TaggedDocs: Docs {
         Ok(Doc::new(
             output_path.clone(),
             output_path,
-            None::<PathBuf>,
-            None::<PathBuf>,
+            None,
+            None,
             created,
             created,
-            taxonomy_key,
+            taxonomy_key.into(),
+            "".into(),
             json_string,
             json!({}),
         ))
@@ -141,20 +142,21 @@ pub trait TaggedDocs: Docs {
             let mut parts = HashMap::new();
             parts.insert("taxonomy", to_slug(taxonomy_key));
             parts.insert("term", to_slug(&term));
-            let output_path = token_template::render(output_path_template, &parts);
+            let output_path: PathBuf = token_template::render(output_path_template, &parts).into();
             let meta = json!({ "items": stubs });
             let now = chrono::Utc::now();
-            Doc {
-                id_path: PathBuf::from(&output_path),
-                output_path: PathBuf::from(&output_path),
-                input_path: None,
-                template_path: template_path.clone(),
-                created: now,
-                modified: now,
-                title: term.to_owned(),
-                content: "".to_owned(),
+            Doc::new(
+                output_path.clone(),
+                output_path.clone(),
+                None,
+                template_path.clone(),
+                now,
+                now,
+                term,
+                "".to_string(),
+                "content".to_string(),
                 meta,
-            }
+            )
         })
     }
 }

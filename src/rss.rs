@@ -41,7 +41,7 @@ pub trait RssDocs: Docs {
         title: &str,
         description: &str,
         author: &str,
-        output_path: &str,
+        output_path: &Path,
         last_build_date: Option<DateTime<Utc>>,
     ) -> Result<Doc, Error> {
         let last_build_date = last_build_date.unwrap_or_else(|| Utc::now());
@@ -56,14 +56,15 @@ pub trait RssDocs: Docs {
         context.insert("generator", "Lettersmith");
 
         let rss_doc = Doc::new(
-            output_path,
-            output_path,
-            None::<&Path>,
-            None::<&Path>,
+            output_path.into(),
+            output_path.into(),
+            None,
+            None,
             last_build_date,
             last_build_date,
-            title,
-            "".to_owned(),
+            title.to_string(),
+            "".to_string(),
+            "".to_string(),
             json!({}),
         );
 

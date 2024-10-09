@@ -58,7 +58,7 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
                 .file_name()
                 .expect("Could not get file name")
                 .to_str()
-                .expect("Cound not convert file name to str")
+                .expect("Could not convert file name to str")
                 .starts_with('_')
         })
     }
@@ -123,8 +123,8 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
 
     /// Set template based on parent directory name.
     /// Falls back to default.html if no parent.
-    fn autotemplate(self) -> impl Docs {
-        self.map(move |doc| doc.autotemplate())
+    fn auto_template(self) -> impl Docs {
+        self.map(move |doc| doc.auto_template())
     }
 }
 

@@ -1,7 +1,8 @@
 use crate::error::Error;
+use crate::html::strip_html;
 use crate::io::write_file_deep;
-use crate::json::{self, merge};
-use crate::text::{first_sentence, to_slug, truncate, truncate_280};
+use crate::json::{self, get_deep, merge};
+use crate::text::{to_slug, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,20 +16,22 @@ pub struct Doc {
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     pub title: String,
+    pub summary: String,
     pub content: String,
     pub meta: json::Value,
 }
 
 impl Doc {
     pub fn new(
-        id_path: impl Into<PathBuf>,
-        output_path: impl Into<PathBuf>,
-        input_path: Option<impl Into<PathBuf>>,
-        template_path: Option<impl Into<PathBuf>>,
-        created: impl Into<DateTime<Utc>>,
-        modified: impl Into<DateTime<Utc>>,
-        title: impl Into<String>,
-        content: impl Into<String>,
+        id_path: PathBuf,
+        output_path: PathBuf,
+        input_path: Option<PathBuf>,
+        template_path: Option<PathBuf>,
+        created: DateTime<Utc>,
+        modified: DateTime<Utc>,
+        title: String,
+        summary: String,
+        content: String,
         meta: json::Value,
     ) -> Self {
         Doc {
@@ -39,6 +42,7 @@ impl Doc {
             created: created.into(),
             modified: modified.into(),
             title: title.into(),
+            summary: summary.into(),
             content: content.into(),
             meta,
         }
@@ -61,13 +65,14 @@ impl Doc {
         let title = path.file_stem().unwrap().to_string_lossy().into_owned();
 
         Ok(Doc::new(
-            path,
-            path,
-            Some(path),
-            None::<PathBuf>,
-            metadata.created()?,
-            metadata.modified()?,
+            path.into(),
+            path.into(),
+            Some(path.to_owned()),
+            None,
+            metadata.created()?.into(),
+            metadata.modified()?.into(),
             title,
+            "".to_string(),
             content,
             serde_json::Value::Null,
         ))
@@ -125,30 +130,49 @@ impl Doc {
         self
     }
 
-    /// Summarize doc using either meta summary field, or truncating to
-    /// max 280 chars.
-    pub fn summary_280(&self) -> String {
-        if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
-            str.to_string()
+    pub fn set_summary(mut self, summary: impl Into<String>) -> Self {
+        self.summary = summary.into();
+        self
+    }
+
+    pub fn set_summary_if_empty(self, summary: impl Into<String>) -> Self {
+        if self.summary.is_empty() {
+            self.set_summary(summary)
         } else {
-            truncate_280(&self.content)
+            self
         }
     }
 
-    /// Summarize doc using either meta summary field, or truncating to
-    /// `max_chars`.
-    pub fn summary(&self, max_chars: usize, suffix: &str) -> String {
-        if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
-            str.to_string()
-        } else {
-            truncate(&self.content, max_chars, suffix)
-        }
+    /// Generate a summary from content if no summary has already been assigned.
+    pub fn auto_summary(self) -> Self {
+        let summary = truncate_280(&strip_html(&self.content));
+        self.set_summary_if_empty(summary)
     }
 
-    /// Get first sentence of content
-    pub fn first_sentence(&self) -> String {
-        first_sentence(&self.content)
-    }
+    // /// Summarize doc using either meta summary field, or truncating to
+    // /// max 280 chars.
+    // pub fn summary_280(&self) -> String {
+    //     if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
+    //         str.to_string()
+    //     } else {
+    //         truncate_280(&self.content)
+    //     }
+    // }
+
+    // /// Summarize doc using either meta summary field, or truncating to
+    // /// `max_chars`.
+    // pub fn summary(&self, max_chars: usize, suffix: &str) -> String {
+    //     if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
+    //         str.to_string()
+    //     } else {
+    //         truncate(&self.content, max_chars, suffix)
+    //     }
+    // }
+
+    // /// Get first sentence of content
+    // pub fn first_sentence(&self) -> String {
+    //     first_sentence(&self.content)
+    // }
 
     /// Set template, overwriting whatever was there previously
     pub fn set_template(mut self, template_path: impl Into<PathBuf>) -> Self {
@@ -157,8 +181,16 @@ impl Doc {
     }
 
     /// Set template based on parent directory name.
-    /// Falls back to `default.html` if no parent.
-    pub fn autotemplate(self) -> Self {
+    /// - Uses parent path to assign template
+    /// - Or falls back to `default.html` if no parent
+    /// - If a template is already assigned to doc, skips and does nothing
+    ///
+    /// For example:
+    /// - A doc with id_path `posts/a.md` gets assigned
+    ///   `posts.html`.
+    /// - A doc with id_path `pages/company/about.md` gets assigned
+    ///   `pages/company.html`
+    pub fn auto_template(self) -> Self {
         if self.template_path.is_none() {
             let file_name: String = self
                 .id_path
@@ -189,6 +221,12 @@ impl Doc {
         self.set_extension("html")
     }
 
+    /// Path into meta, getting value if it exists
+    /// Example: `doc.meta('music.artist.name')`
+    pub fn meta(self, path: &str) -> Option<json::Value> {
+        get_deep(&self.meta, path)
+    }
+
     pub fn set_meta(mut self, meta: json::Value) -> Self {
         self.meta = meta;
         self
@@ -202,13 +240,17 @@ impl Doc {
 
     /// Uplift metadata, looking for blessed fields and assigning values to doc:
     /// - title
+    /// - summary
     /// - created
     /// - modified
     /// - permalink
     /// - template
     pub fn uplift_meta(mut self) -> Self {
         if let Some(json::Value::String(title)) = self.meta.get("title") {
-            self.title = title.clone();
+            self.title = title.to_string();
+        }
+        if let Some(json::Value::String(summary)) = self.meta.get("summary") {
+            self.summary = summary.to_string();
         }
         if let Some(json::Value::String(created)) = self.meta.get("created") {
             if let Ok(created) = created.parse() {

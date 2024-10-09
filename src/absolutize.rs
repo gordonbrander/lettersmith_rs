@@ -86,6 +86,7 @@ mod tests {
             created: Utc::now(),
             modified: Utc::now(),
             title: "Test".to_string(),
+            summary: "".to_string(),
             content: "<a href='/relative'>Link</a>".to_string(),
             meta: json!({}),
         };

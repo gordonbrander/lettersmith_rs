@@ -30,11 +30,12 @@ pub trait SitemapDocs: Docs {
             id_path: PathBuf::from(&output_path),
             output_path: PathBuf::from(&output_path),
             input_path: None,
-            template_path: None::<PathBuf>,
+            template_path: None,
             created: now,
             modified: now,
-            title: "".to_owned(),
-            content: "".to_owned(),
+            title: "".to_string(),
+            summary: "".to_string(),
+            content: "".to_string(),
             meta: json!({}),
         };
 

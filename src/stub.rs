@@ -43,7 +43,7 @@ impl Doc {
             created: self.created,
             modified: self.modified,
             title: self.title.clone(),
-            summary: self.summary_280(),
+            summary: self.summary.clone(),
         }
     }
 }
@@ -86,10 +86,13 @@ mod tests {
             modified: Utc::now(),
             title: "Test Title".to_string(),
             content: "Test content".to_string(),
+            summary: "".to_string(),
             meta: json!({
                 "summary": "Test summary".to_string()
             }),
         };
+
+        let doc = doc.uplift_meta();
 
         let stub = Stub::from(&doc);
 
@@ -99,27 +102,6 @@ mod tests {
         assert_eq!(stub.modified, doc.modified);
         assert_eq!(stub.title, doc.title);
         assert_eq!(stub.summary, "Test summary");
-    }
-
-    #[test]
-    fn test_stub_from_doc_without_summary() {
-        let doc = Doc {
-            id_path: PathBuf::from("test/path"),
-            input_path: None,
-            output_path: PathBuf::from("output/path"),
-            template_path: None::<PathBuf>,
-            created: Utc::now(),
-            modified: Utc::now(),
-            title: "Test Title".to_string(),
-            content:
-                "This is a test content that should be truncated to 280 characters for the summary."
-                    .to_string(),
-            meta: json!({}),
-        };
-
-        let stub = Stub::from(&doc);
-
-        assert_eq!(stub.summary, doc.summary_280());
     }
 
     #[test]
@@ -133,6 +115,7 @@ mod tests {
                 created: Utc::now(),
                 modified: Utc::now(),
                 title: "Test Title 1".to_string(),
+                summary: "".to_string(),
                 content: "Test content 1".to_string(),
                 meta: json!({}),
             },
@@ -144,6 +127,7 @@ mod tests {
                 created: Utc::now(),
                 modified: Utc::now(),
                 title: "Test Title 2".to_string(),
+                summary: "".to_string(),
                 content: "Test content 2".to_string(),
                 meta: json!({}),
             },

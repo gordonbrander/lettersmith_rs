@@ -15,10 +15,12 @@ pub fn strip_markdown(markdown: &str) -> String {
 }
 
 impl Doc {
-    /// Render content to markdown
-    pub fn render_markdown(mut self) -> Self {
-        self.content = render_markdown(&self.content);
-        self.set_extension_html()
+    /// Render content with Markdown, and generate automatic summaries
+    pub fn render_markdown(self) -> Self {
+        let content = render_markdown(&self.content);
+        self.set_content(content)
+            .auto_summary()
+            .set_extension_html()
     }
 }
 
