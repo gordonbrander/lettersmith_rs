@@ -16,7 +16,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    #[command(about = "Read docs from file paths")]
+    #[command(
+        about = "Read docs from text files. Creates docs from text files, assigning sensible defaults. File name becomes title, contents of file become content, etc."
+    )]
     Read {
         #[arg(
             help = "File paths to read. Tip: you can use glob patterns to match specific lists of files. Example: smith read posts/*.md"
@@ -35,7 +37,28 @@ enum Commands {
         output_dir: PathBuf,
     },
 
-    #[command(about = "Render markdown and templates for blog posts or pages")]
+    #[command(
+        about = "Read docs from JSON files. Deserialize the contents of the JSON files into docs."
+    )]
+    ReadJson {
+        #[arg(
+            help = "File paths to read. Tip: you can use glob patterns to match specific lists of files. Example: smith read posts/*.json"
+        )]
+        #[arg(value_name = "FILE")]
+        files: Vec<PathBuf>,
+    },
+
+    #[command(
+        about = "Write docs as JSON files to a directory. Typically used to save build artifacts."
+    )]
+    WriteJson {
+        #[arg(help = "Directory to write docs to")]
+        #[arg(value_name = "DIRECTORY")]
+        #[arg(default_value = "public")]
+        output_dir: PathBuf,
+    },
+
+    #[command(about = "Render templates for blog posts or pages")]
     Blog {
         #[arg(long = "permalink-template")]
         #[arg(default_value = "{parents}/{slug}/index.html")]
@@ -49,6 +72,9 @@ enum Commands {
         #[arg(value_name = "FILE")]
         data: Vec<PathBuf>,
     },
+
+    #[command(about = "Render markdown")]
+    Markdown {},
 
     #[command(about = "Set permalink via a template")]
     Permalink {
@@ -94,34 +120,59 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Read { files } => read(files),
-        Commands::Write { output_dir } => write(output_dir.as_path()),
+        Commands::Read { files } => read_cmd(files),
+        Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
+        Commands::ReadJson { files } => read_json_cmd(files),
+        Commands::WriteJson { output_dir } => write_json_cmd(output_dir.as_path()),
+        Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
             permalink_template,
             data,
-        } => blog(&permalink_template, &data, &config),
-        Commands::Permalink { permalink_template } => permalink(&permalink_template),
+        } => blog_cmd(&permalink_template, &data, &config),
+        Commands::Permalink { permalink_template } => permalink_cmd(&permalink_template),
         Commands::Template { data } => template(&data, &config),
         Commands::Tagindex {
             output_path,
             taxonomy,
-        } => tagindex(taxonomy, output_path),
-        Commands::Frontmatter {} => frontmatter(),
+        } => tagindex_cmd(taxonomy, output_path),
+        Commands::Frontmatter {} => frontmatter_cmd(),
     }
 }
 
 /// Read docs from paths
-fn read(files: Vec<PathBuf>) {
+fn read_cmd(files: Vec<PathBuf>) {
     docs::read(files.into_iter())
         .panic_at_first_error()
         .write_stdio();
 }
 
-fn write(output_dir: &Path) {
+/// Write docs as text files
+fn write_cmd(output_dir: &Path) {
     docs::read_stdin().panic_at_first_error().write(output_dir);
 }
 
-fn blog(permalink_template: &str, data_files: &Vec<PathBuf>, config: &Config) {
+/// Read docs from JSON file paths
+fn read_json_cmd(files: Vec<PathBuf>) {
+    docs::read_json(files.into_iter())
+        .panic_at_first_error()
+        .write_stdio();
+}
+
+/// Write docs as JSON files
+fn write_json_cmd(output_dir: &Path) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .write_json(output_dir);
+}
+
+fn markdown_cmd() {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .render_markdown()
+        .write_stdio();
+}
+
+fn blog_cmd(permalink_template: &str, data_files: &Vec<PathBuf>, config: &Config) {
     let data = json::read_json_files_as_data_map(data_files).unwrap();
 
     // Set up Tera instance
@@ -132,12 +183,12 @@ fn blog(permalink_template: &str, data_files: &Vec<PathBuf>, config: &Config) {
 
     docs::read_stdin()
         .panic_at_first_error()
-        .markdown_blog_doc(permalink_template, &config.site_url, &renderer, &context)
+        .blog_doc(permalink_template, &config.site_url, &renderer, &context)
         .panic_at_first_error()
         .write_stdio();
 }
 
-fn permalink(template: &str) {
+fn permalink_cmd(template: &str) {
     docs::read_stdin()
         .panic_at_first_error()
         .set_permalink(template)
@@ -156,23 +207,23 @@ fn template(data_files: &Vec<PathBuf>, config: &Config) {
 
     docs::read_stdin()
         .panic_at_first_error()
+        .auto_template()
         .render_tera_template(&renderer, &context)
         .panic_at_first_error()
         .write_stdio();
 }
 
 /// Index all docs by tag and create JSON doc
-fn tagindex(taxonomy: String, output_path: PathBuf) {
+fn tagindex_cmd(taxonomy: String, output_path: PathBuf) {
     docs::read_stdin()
         .panic_at_first_error()
-        .parse_and_uplift_frontmatter()
         .generate_tag_index_doc(&taxonomy, &output_path)
         .unwrap()
         .write_stdio();
 }
 
 /// Parse and uplift frontmatter
-fn frontmatter() {
+fn frontmatter_cmd() {
     docs::read_stdin()
         .panic_at_first_error()
         .parse_and_uplift_frontmatter()

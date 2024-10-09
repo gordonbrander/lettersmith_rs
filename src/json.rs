@@ -11,7 +11,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 
-/// Read a JSON file, returning a result of the JSON value.
+/// Read a JSON file, returning a result of the type requested
 pub fn read(path: impl AsRef<Path>) -> Result<Value, Error> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
