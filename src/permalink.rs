@@ -65,36 +65,32 @@ impl Doc {
     ///
     /// Returns `None` if any required path component is missing.
     pub fn get_permalink_template_parts(&self) -> Option<HashMap<&str, String>> {
-        let name = self.id_path.file_name()?.to_string_lossy().into_owned();
-        let stem = self.id_path.file_stem()?.to_string_lossy().into_owned();
-        let slug = to_slug(&stem);
-        let ext = self.id_path.extension()?.to_string_lossy().into_owned();
-        let parents = self.id_path.parent()?.to_string_lossy().into_owned();
-        let parent = self
-            .id_path
-            .parent()?
-            .file_name()?
-            .to_string_lossy()
-            .into_owned();
-        let yyyy = self.created.format("%Y").to_string();
-        let yy = self.created.format("%y").to_string();
-        let mm = self.created.format("%m").to_string();
-        let dd = self.created.format("%d").to_string();
-        let mut map = HashMap::new();
+        let sluggified_path = sluggify_path(&self.id_path);
+        let name = sluggified_path.file_name()?;
+        let nice_name = to_nice_path(Path::new(&name))?;
+        let stem = sluggified_path.file_stem()?;
+        let ext = sluggified_path.extension()?;
+        let parents = sluggified_path.parent()?;
+        let parent = sluggified_path.parent()?.file_name()?;
+        let yyyy = self.created.format("%Y");
+        let yy = self.created.format("%y");
+        let mm = self.created.format("%m");
+        let dd = self.created.format("%d");
+        let mut map: HashMap<&str, String> = HashMap::new();
         // Name including extension
-        map.insert("name", name);
+        map.insert("name", name.to_string_lossy().to_string());
+        map.insert("nice", nice_name.to_string_lossy().to_string());
         // Name excluding extension
-        map.insert("stem", stem);
-        map.insert("slug", slug);
-        map.insert("ext", ext);
+        map.insert("stem", stem.to_string_lossy().to_string());
+        map.insert("ext", ext.to_string_lossy().to_string());
         // All parents
-        map.insert("parents", parents);
+        map.insert("parents", parents.to_string_lossy().to_string());
         // Just the closest parent
-        map.insert("parent", parent);
-        map.insert("yyyy", yyyy);
-        map.insert("yy", yy);
-        map.insert("mm", mm);
-        map.insert("dd", dd);
+        map.insert("parent", parent.to_string_lossy().to_string());
+        map.insert("yyyy", yyyy.to_string());
+        map.insert("yy", yy.to_string());
+        map.insert("mm", mm.to_string());
+        map.insert("dd", dd.to_string());
         Some(map)
     }
 
@@ -166,19 +162,19 @@ mod tests {
     #[test]
     fn test_get_permalink_template_parts() {
         let doc = Doc {
-            id_path: PathBuf::from("a/b/test file.md"),
+            id_path: PathBuf::from("foo bar/Baz/test file.md"),
             created: Utc.with_ymd_and_hms(2023, 5, 15, 0, 0, 0).unwrap(),
             ..Default::default()
         };
 
         let parts = doc.get_permalink_template_parts().unwrap();
 
-        assert_eq!(parts.get("name"), Some(&"test file.md".to_string()));
-        assert_eq!(parts.get("stem"), Some(&"test file".to_string()));
-        assert_eq!(parts.get("slug"), Some(&"test-file".to_string()));
+        assert_eq!(parts.get("name"), Some(&"test-file.md".to_string()));
+        assert_eq!(parts.get("nice"), Some(&"test-file/index.html".to_string()));
+        assert_eq!(parts.get("stem"), Some(&"test-file".to_string()));
         assert_eq!(parts.get("ext"), Some(&"md".to_string()));
-        assert_eq!(parts.get("parents"), Some(&"a/b".to_string()));
-        assert_eq!(parts.get("parent"), Some(&"b".to_string()));
+        assert_eq!(parts.get("parents"), Some(&"foo-bar/baz".to_string()));
+        assert_eq!(parts.get("parent"), Some(&"baz".to_string()));
         assert_eq!(parts.get("yyyy"), Some(&"2023".to_string()));
         assert_eq!(parts.get("yy"), Some(&"23".to_string()));
         assert_eq!(parts.get("mm"), Some(&"05".to_string()));
@@ -212,6 +208,13 @@ mod tests {
         let path = Path::new("foo bar/Baz/index.md");
         let nice = to_nice_path(path).unwrap();
         assert_eq!(nice, PathBuf::from("foo-bar/baz/index.html"));
+    }
+
+    #[test]
+    fn test_nice_path_file_name_only() {
+        let path = Path::new("foo.md");
+        let nice = to_nice_path(path).unwrap();
+        assert_eq!(nice, PathBuf::from("foo/index.html"));
     }
 
     #[test]
