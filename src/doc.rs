@@ -116,7 +116,7 @@ impl Doc {
                 println!("{}", json);
             }
             Err(err) => {
-                eprintln!("Error serializing doc: {}", err);
+                eprintln!("Error serializing doc: {:?}", err);
             }
         }
     }
