@@ -171,31 +171,6 @@ impl Doc {
         self.set_summary_if_empty(summary)
     }
 
-    // /// Summarize doc using either meta summary field, or truncating to
-    // /// max 280 chars.
-    // pub fn summary_280(&self) -> String {
-    //     if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
-    //         str.to_string()
-    //     } else {
-    //         truncate_280(&self.content)
-    //     }
-    // }
-
-    // /// Summarize doc using either meta summary field, or truncating to
-    // /// `max_chars`.
-    // pub fn summary(&self, max_chars: usize, suffix: &str) -> String {
-    //     if let Some(str) = self.meta.get("summary").and_then(|v| v.as_str()) {
-    //         str.to_string()
-    //     } else {
-    //         truncate(&self.content, max_chars, suffix)
-    //     }
-    // }
-
-    // /// Get first sentence of content
-    // pub fn first_sentence(&self) -> String {
-    //     first_sentence(&self.content)
-    // }
-
     /// Set template, overwriting whatever was there previously
     pub fn set_template(mut self, template_path: impl Into<PathBuf>) -> Self {
         self.template_path = Some(template_path.into());
