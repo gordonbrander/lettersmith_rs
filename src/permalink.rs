@@ -3,6 +3,50 @@ use crate::docs::Docs;
 use crate::text::to_slug;
 use crate::token_template;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+/// Sluggify all the normal components of a path.
+pub fn sluggify_path(path: &Path) -> PathBuf {
+    path.components()
+        .map(|component| match component {
+            std::path::Component::Normal(os_str) => os_str
+                .to_str()
+                .map(to_slug)
+                .unwrap_or_else(|| os_str.to_string_lossy().into_owned()),
+            _ => component.as_os_str().to_string_lossy().into_owned(),
+        })
+        .collect()
+}
+
+/// Makes an ugly path into a "nice path". Nice paths are paths that end with
+/// an index file, so you can reference them `like/this/` instead of
+/// `like/This.html`.
+///
+/// ugly_path:
+///     some/File.md
+///
+/// nice_path:
+///     some/file/index.html
+///
+/// ugly_path:
+///     some/index.md
+///
+/// nice_path:
+///     some/index.html
+pub fn to_nice_path(path: &Path) -> Option<PathBuf> {
+    let sluggified_path = sluggify_path(path);
+    let stem = sluggified_path.file_stem()?.to_str()?;
+    if stem == "index" {
+        // If it is an index file, canonicalize it as index.html, but leave
+        // it flat and don't add an additional subdir
+        // (do not do `index/index.html`).
+        Some(sluggified_path.with_file_name("index.html"))
+    } else {
+        let parent = sluggified_path.parent()?;
+        let nice = parent.join(format!("{}/{}", stem, "index.html"));
+        Some(nice)
+    }
+}
 
 impl Doc {
     /// Extracts permalink template parts from a document.
@@ -154,5 +198,26 @@ mod tests {
             permalink_doc.output_path,
             PathBuf::from("2023/05/15/test_file/index.html")
         );
+    }
+
+    #[test]
+    fn test_nice_path() {
+        let path = Path::new("foo bar/Baz/Some.md");
+        let nice = to_nice_path(path).unwrap();
+        assert_eq!(nice, PathBuf::from("foo-bar/baz/some/index.html"));
+    }
+
+    #[test]
+    fn test_nice_path_index() {
+        let path = Path::new("foo bar/Baz/index.md");
+        let nice = to_nice_path(path).unwrap();
+        assert_eq!(nice, PathBuf::from("foo-bar/baz/index.html"));
+    }
+
+    #[test]
+    fn test_sluggify_path() {
+        let path = Path::new("Foo bar/baZ/INDEX.md");
+        let sluggified_path = sluggify_path(path);
+        assert_eq!(sluggified_path, PathBuf::from("foo-bar/baz/index.md"));
     }
 }
