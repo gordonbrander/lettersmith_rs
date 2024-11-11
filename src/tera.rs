@@ -6,7 +6,9 @@ use crate::markdown::render_markdown;
 use crate::stub::Stub;
 use crate::tags::get_union_for_index_keys;
 use chrono::Utc;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 pub use tera::{self, try_get_value, Context, Tera};
 
 impl Doc {
@@ -116,12 +118,37 @@ fn filter_get_deep(
     return Ok(get_deep(value, &path).unwrap_or(default));
 }
 
+/// Deterministically choose an element in an array using the hash of a value
+/// to pick.
+fn filter_choose_by_hash(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let vec = match value.as_array() {
+        Some(vec) => vec,
+        None => return Err(tera::Error::msg("must be called on an array")),
+    };
+    let hashable = match args.get("value") {
+        Some(hashable) => hashable,
+        None => return Err(tera::Error::msg("value argument needed")),
+    };
+    let index = {
+        let mut hasher = DefaultHasher::new();
+        hashable.hash(&mut hasher);
+        let hash = hasher.finish();
+        (hash % vec.len() as u64) as usize
+    };
+    let item = vec[index].clone();
+    return Ok(item);
+}
+
 /// Decorate Tera instance with Lettersmith-specific configuration
 pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
     renderer.register_filter("related", filter_related);
     renderer.register_filter("markdown", filter_markdown);
     renderer.register_filter("get_deep", filter_get_deep);
+    renderer.register_filter("choose_by_hash", filter_choose_by_hash);
     renderer
 }
 
