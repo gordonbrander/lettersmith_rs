@@ -1,5 +1,6 @@
 pub use tap::pipe;
 pub mod absolutize;
+pub mod archive;
 pub mod blog;
 pub mod cli;
 pub mod config;
@@ -10,7 +11,6 @@ pub mod frontmatter;
 pub mod html;
 pub mod io;
 pub mod json;
-pub mod json_archive;
 pub mod markdown;
 pub mod permalink;
 pub mod prelude;

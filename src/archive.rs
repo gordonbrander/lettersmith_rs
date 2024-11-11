@@ -1,3 +1,4 @@
+// Utilities for reading/writing a collection of docs to a JSON file
 use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::error::Error;
@@ -12,8 +13,8 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<Doc>, Error> {
     return Ok(docs);
 }
 
-pub trait JsonArchiveDocs: Docs {
-    fn write_json_archive(self, path: &Path) -> Result<(), Error> {
+pub trait ArchiveDocs: Docs {
+    fn write_archive(self, path: &Path) -> Result<(), Error> {
         let docs: Vec<Doc> = self.collect();
         let json = serde_json::to_string(&docs)?;
         write_file_deep(path, &json)?;
@@ -21,4 +22,4 @@ pub trait JsonArchiveDocs: Docs {
     }
 }
 
-impl<I> JsonArchiveDocs for I where I: Iterator<Item = Doc> {}
+impl<I> ArchiveDocs for I where I: Iterator<Item = Doc> {}

@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use json_archive::JsonArchiveDocs;
 use lettersmith::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -39,22 +38,23 @@ enum Commands {
     },
 
     #[command(
-        about = "Read docs from JSON files. Deserialize the contents of the JSON files into docs."
+        about = "Read docs from JSON archive files. Deserializes the contents of the JSON and outputs docs to stdout."
     )]
-    ReadJson {
-        #[arg(help = "File path to read. Example: smith read-json build/posts.json")]
+    ReadArchive {
+        #[arg(
+            help = "File path of archive file to read. Example: smith read-archive build/posts.json"
+        )]
         #[arg(value_name = "FILE")]
         file: PathBuf,
     },
 
     #[command(
-        about = "Write docs as JSON files to a directory. Typically used to save build artifacts."
+        about = "Write docs to a JSON archive file. Typically used to save a transformed collections of documents so you can read them back out in various parts of your build pipeline."
     )]
-    WriteJson {
-        #[arg(help = "Directory to write docs to")]
-        #[arg(value_name = "DIRECTORY")]
-        #[arg(default_value = "public")]
-        output_dir: PathBuf,
+    WriteArchive {
+        #[arg(help = "File to write JSON archive to")]
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
     },
 
     #[command(about = "Render templates for blog posts or pages")]
@@ -121,8 +121,8 @@ fn main() {
     match cli.command {
         Commands::Read { files } => read_cmd(files),
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
-        Commands::ReadJson { file } => read_json_cmd(file),
-        Commands::WriteJson { output_dir } => write_json_cmd(output_dir.as_path()),
+        Commands::ReadArchive { file } => read_archive_cmd(file),
+        Commands::WriteArchive { file } => write_archive_cmd(file.as_path()),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
             permalink_template,
@@ -151,18 +151,18 @@ fn write_cmd(output_dir: &Path) {
 }
 
 /// Read docs from JSON file paths
-fn read_json_cmd(file: PathBuf) {
-    json_archive::read(file.as_path())
+fn read_archive_cmd(file: PathBuf) {
+    archive::read(file.as_path())
         .unwrap()
         .into_iter()
         .write_stdio();
 }
 
 /// Write docs as JSON files
-fn write_json_cmd(output_dir: &Path) {
+fn write_archive_cmd(output_dir: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
-        .write_json_archive(output_dir)
+        .write_archive(output_dir)
         .unwrap();
 }
 
