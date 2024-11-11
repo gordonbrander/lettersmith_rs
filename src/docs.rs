@@ -25,21 +25,6 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         }
     }
 
-    fn write_json(self, output_dir: &Path) {
-        for doc in self {
-            match doc.write_json(output_dir) {
-                Ok(write_path) => {
-                    println!(
-                        "Wrote {} → {}",
-                        doc.id_path.to_string_lossy(),
-                        write_path.to_string_lossy()
-                    )
-                }
-                Err(err) => eprintln!("{:?}", err),
-            }
-        }
-    }
-
     /// Write docs to stdio
     /// - JSON serialized docs are printed to stdout
     /// - Serialization failures are printed to stderr
@@ -166,12 +151,6 @@ impl<I> DocResults for I where I: Iterator<Item = Result<Doc, Error>> {}
 /// Returns an iterator of doc results.
 pub fn read(paths: impl Iterator<Item = PathBuf>) -> impl DocResults {
     paths.map(|path| Doc::read(path))
-}
-
-/// Load documents from an iterator of paths.
-/// Returns an iterator of doc results.
-pub fn read_json(paths: impl Iterator<Item = PathBuf>) -> impl DocResults {
-    paths.map(|path| Doc::read_json(path))
 }
 
 /// Parse JSON documents from stdin as line-separated JSON.

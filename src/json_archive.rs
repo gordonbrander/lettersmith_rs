@@ -20,3 +20,5 @@ pub trait JsonArchiveDocs: Docs {
         Ok(())
     }
 }
+
+impl<I> JsonArchiveDocs for I where I: Iterator<Item = Doc> {}

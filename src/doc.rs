@@ -5,7 +5,6 @@ use crate::json::{self, get_deep, merge};
 use crate::text::{to_slug, truncate_280};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash, Default)]
@@ -79,30 +78,11 @@ impl Doc {
         ))
     }
 
-    /// Load a doc from a JSON file at path.
-    pub fn read_json(path: impl AsRef<Path>) -> Result<Self, Error> {
-        let json_string = read_to_string(path)?;
-        let doc: Doc = serde_json::from_str(&json_string)?;
-        Ok(doc)
-    }
-
     /// Write the doc to its output path.
     /// Returns a result containing the write path of the file on success.
     pub fn write(&self, output_dir: impl AsRef<Path>) -> Result<PathBuf, Error> {
         let write_path = output_dir.as_ref().join(&self.output_path);
         write_file_deep(&write_path, &self.content)?;
-        Ok(write_path)
-    }
-
-    /// Write the doc to a JSON file
-    /// - `output_path` is given a `.json` extension
-    /// - Doc is serialized to JSON and written to file contents
-    /// Returns a result containing the write path of the file on success.
-    pub fn write_json(&self, output_dir: impl AsRef<Path>) -> Result<PathBuf, Error> {
-        let output_path = self.id_path.with_extension("json");
-        let write_path = output_dir.as_ref().join(&output_path);
-        let json_content = json::to_string_pretty(&self)?;
-        write_file_deep(&write_path, &json_content)?;
         Ok(write_path)
     }
 

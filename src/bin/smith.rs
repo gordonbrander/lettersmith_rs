@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use json_archive::JsonArchiveDocs;
 use lettersmith::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -41,11 +42,9 @@ enum Commands {
         about = "Read docs from JSON files. Deserialize the contents of the JSON files into docs."
     )]
     ReadJson {
-        #[arg(
-            help = "File paths to read. Tip: you can use glob patterns to match specific lists of files. Example: smith read posts/*.json"
-        )]
+        #[arg(help = "File path to read. Example: smith read-json build/posts.json")]
         #[arg(value_name = "FILE")]
-        files: Vec<PathBuf>,
+        file: PathBuf,
     },
 
     #[command(
@@ -122,7 +121,7 @@ fn main() {
     match cli.command {
         Commands::Read { files } => read_cmd(files),
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
-        Commands::ReadJson { files } => read_json_cmd(files),
+        Commands::ReadJson { file } => read_json_cmd(file),
         Commands::WriteJson { output_dir } => write_json_cmd(output_dir.as_path()),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
@@ -152,9 +151,10 @@ fn write_cmd(output_dir: &Path) {
 }
 
 /// Read docs from JSON file paths
-fn read_json_cmd(files: Vec<PathBuf>) {
-    docs::read_json(files.into_iter())
-        .panic_at_first_error()
+fn read_json_cmd(file: PathBuf) {
+    json_archive::read(file.as_path())
+        .unwrap()
+        .into_iter()
         .write_stdio();
 }
 
@@ -162,7 +162,8 @@ fn read_json_cmd(files: Vec<PathBuf>) {
 fn write_json_cmd(output_dir: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
-        .write_json(output_dir);
+        .write_json_archive(output_dir)
+        .unwrap();
 }
 
 fn markdown_cmd() {
