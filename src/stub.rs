@@ -56,18 +56,20 @@ impl From<&Doc> for Stub {
 
 pub trait StubDocs: Docs {
     /// Create an iterator of Stubs from an iterator of Docs
-    fn stubs(self) -> impl Iterator<Item = Stub> {
+    fn stubs(self) -> impl Stubs {
         self.map(|doc| Stub::from(&doc))
     }
 }
 
 impl<I> StubDocs for I where I: Docs {}
 
-pub trait Stubs: Iterator<Item = Stub> {
+pub trait Stubs: Iterator<Item = Stub> + Sized {
     fn index_by_slug(stubs: impl Stubs) -> std::collections::HashMap<String, Stub> {
         stubs.map(|stub| (stub.get_title_slug(), stub)).collect()
     }
 }
+
+impl<I> Stubs for I where I: Iterator<Item = Stub> {}
 
 #[cfg(test)]
 mod tests {

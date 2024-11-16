@@ -1,3 +1,4 @@
+use archive::ArchiveStubs;
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
 use std::env;
@@ -42,7 +43,7 @@ enum Commands {
     )]
     Stash {
         #[arg(
-            help = "Write docs to a JSON file. You can use unstash to read docs back out from a stash."
+            help = "Write docs to a JSON file. You can use unstash to read docs back out from a stash. Example: smith stash build/posts.json"
         )]
         #[arg(value_name = "FILE")]
         file: PathBuf,
@@ -53,6 +54,15 @@ enum Commands {
     )]
     Unstash {
         #[arg(help = "File path read stashed docs. Example: smith unstash build/posts.json")]
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+    },
+
+    #[command(
+        about = "Transform docs into stubs (excerpted docs) and write to a JSON file. Typically used to generate a list of posts that can be used during templating."
+    )]
+    Stubs {
+        #[arg(help = "File path to write stubs to. Example: smith stubs posts.json")]
         #[arg(value_name = "FILE")]
         file: PathBuf,
     },
@@ -123,6 +133,7 @@ fn main() {
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
         Commands::Stash { file } => stash_cmd(file.as_path()),
         Commands::Unstash { file } => unstash_cmd(file),
+        Commands::Stubs { file } => stubs_cmd(file.as_path()),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
             permalink_template,
@@ -158,11 +169,20 @@ fn unstash_cmd(file: PathBuf) {
         .write_stdio();
 }
 
-/// Write docs as JSON files
+/// Write docs as JSON file
 fn stash_cmd(output_dir: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
         .write_archive(output_dir)
+        .unwrap();
+}
+
+/// Write docs as stubs to JSON file
+fn stubs_cmd(file: &Path) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .stubs()
+        .write_archive(file)
         .unwrap();
 }
 

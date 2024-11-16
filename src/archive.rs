@@ -3,6 +3,7 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::error::Error;
 use crate::io::write_file_deep;
+use crate::stub::{Stub, Stubs};
 use std::fs::read_to_string;
 use std::path::Path;
 
@@ -23,3 +24,14 @@ pub trait ArchiveDocs: Docs {
 }
 
 impl<I> ArchiveDocs for I where I: Iterator<Item = Doc> {}
+
+pub trait ArchiveStubs: Stubs {
+    fn write_archive(self, path: &Path) -> Result<(), Error> {
+        let stubs: Vec<Stub> = self.collect();
+        let json = serde_json::to_string(&stubs)?;
+        write_file_deep(path, &json)?;
+        Ok(())
+    }
+}
+
+impl<I> ArchiveStubs for I where I: Iterator<Item = Stub> {}
