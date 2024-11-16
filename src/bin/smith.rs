@@ -57,6 +57,14 @@ enum Commands {
         file: PathBuf,
     },
 
+    #[command(about = "Take up to n most recent docs")]
+    Recent {
+        #[arg(help = "Number of recent docs to take")]
+        #[arg(value_name = "LIMIT")]
+        #[arg(default_value = "100")]
+        limit: usize,
+    },
+
     #[command(
         about = "Transform docs into stubs (excerpted docs) and write to a JSON file. Typically used to generate a list of posts that can be used during templating."
     )]
@@ -97,7 +105,7 @@ enum Commands {
         #[arg(
             help = "JSON files to include in template context. Example: smith template --data data/*.json"
         )]
-        #[arg(long = "data")]
+        #[arg(long = "data", num_args = 1..)]
         #[arg(value_name = "FILE")]
         data: Vec<PathBuf>,
     },
@@ -132,6 +140,7 @@ fn main() {
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
         Commands::Stash { file } => stash_cmd(file.as_path()),
         Commands::Unstash { file } => unstash_cmd(file),
+        Commands::Recent { limit } => recent_cmd(limit),
         Commands::Stubs { file } => stubs_cmd(file.as_path()),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
@@ -174,6 +183,13 @@ fn stash_cmd(output_dir: &Path) {
         .panic_at_first_error()
         .write_stash(output_dir)
         .unwrap();
+}
+
+fn recent_cmd(limit: usize) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .most_recent(limit)
+        .write_stdio();
 }
 
 /// Write docs as stubs to JSON file

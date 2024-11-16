@@ -2,6 +2,7 @@ use crate::doc::Doc;
 use crate::error::Error;
 use crate::io::{dump_errors_to_stderr, panic_at_first_error};
 use serde_json;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
@@ -79,30 +80,21 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         self.filter(move |doc| seen.insert(doc.id_path.clone()))
     }
 
-    /// Sort docs by created date
-    fn sort_by_created(self) -> impl Docs {
-        let mut docs_vec: Vec<Doc> = self.into_iter().collect();
-        docs_vec.sort_by(|a, b| b.created.cmp(&a.created));
-        docs_vec.into_iter()
-    }
-
-    /// Sort docs by modified date
-    fn sort_by_modified(self) -> impl Docs {
-        let mut docs_vec: Vec<Doc> = self.collect();
-        docs_vec.sort_by(|a, b| b.modified.cmp(&a.modified));
-        docs_vec.into_iter()
-    }
-
-    /// Sort docs by title (A-Z)
-    fn sort_by_title(self) -> impl Docs {
-        let mut docs_vec: Vec<Doc> = self.collect();
-        docs_vec.sort_by(|a, b| a.title.cmp(&b.title));
-        docs_vec.into_iter()
+    fn sorted_by(self, key: SortKey, asc: bool) -> impl Docs {
+        let docs: Vec<Doc> = self.collect();
+        let sorted = match key {
+            SortKey::IdPath => sorted_by(docs, |a, b| a.id_path.cmp(&b.id_path), asc),
+            SortKey::OutputPath => sorted_by(docs, |a, b| a.output_path.cmp(&b.output_path), asc),
+            SortKey::Created => sorted_by(docs, |a, b| b.created.cmp(&a.created), asc),
+            SortKey::Modified => sorted_by(docs, |a, b| b.modified.cmp(&a.modified), asc),
+            SortKey::Title => sorted_by(docs, |a, b| a.title.cmp(&b.title), asc),
+        };
+        sorted.into_iter()
     }
 
     /// Get most recent n docs
     fn most_recent(self, n: usize) -> impl Docs {
-        self.sort_by_created().take(n)
+        self.sorted_by(SortKey::Created, false).take(n)
     }
 
     /// Set output path extension.
@@ -164,4 +156,40 @@ pub fn read_stdin() -> impl DocResults {
             Ok(doc) => Ok(doc),
             Err(err) => Err(Error::from(err)),
         })
+}
+
+pub enum SortKey {
+    IdPath,
+    OutputPath,
+    Created,
+    Modified,
+    Title,
+}
+
+fn sorted_by<T, F>(mut v: Vec<T>, mut compare: F, asc: bool) -> Vec<T>
+where
+    F: FnMut(&T, &T) -> Ordering,
+{
+    v.sort_by(|a, b| {
+        let ord = compare(a, b);
+        if asc {
+            ord
+        } else {
+            ord.reverse()
+        }
+    });
+    v
+}
+
+impl SortKey {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "id_path" => Some(SortKey::IdPath),
+            "output_path" => Some(SortKey::OutputPath),
+            "created" => Some(SortKey::Created),
+            "modified" => Some(SortKey::Modified),
+            "title" => Some(SortKey::Title),
+            _ => None,
+        }
+    }
 }
