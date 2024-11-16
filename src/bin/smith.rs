@@ -38,21 +38,21 @@ enum Commands {
     },
 
     #[command(
-        about = "Read docs from JSON archive files. Deserializes the contents of the JSON and outputs docs to stdout."
+        about = "Write docs to a JSON file. Useful when wanting to stash a set of documents for use in multiple pipelines, or to save a selection of documents for use in templating."
     )]
-    ReadArchive {
+    Stash {
         #[arg(
-            help = "File path of archive file to read. Example: smith read-archive build/posts.json"
+            help = "Write docs to a JSON file. You can use unstash to read docs back out from a stash."
         )]
         #[arg(value_name = "FILE")]
         file: PathBuf,
     },
 
     #[command(
-        about = "Write docs to a JSON archive file. Typically used to save a transformed collections of documents so you can read them back out in various parts of your build pipeline."
+        about = "Read docs from JSON stash. Deserializes the contents of the JSON and outputs docs to stdout."
     )]
-    WriteArchive {
-        #[arg(help = "File to write JSON archive to")]
+    Unstash {
+        #[arg(help = "File path read stashed docs. Example: smith unstash build/posts.json")]
         #[arg(value_name = "FILE")]
         file: PathBuf,
     },
@@ -121,8 +121,8 @@ fn main() {
     match cli.command {
         Commands::Read { files } => read_cmd(files),
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
-        Commands::ReadArchive { file } => read_archive_cmd(file),
-        Commands::WriteArchive { file } => write_archive_cmd(file.as_path()),
+        Commands::Stash { file } => stash_cmd(file.as_path()),
+        Commands::Unstash { file } => unstash_cmd(file),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
             permalink_template,
@@ -151,7 +151,7 @@ fn write_cmd(output_dir: &Path) {
 }
 
 /// Read docs from JSON file paths
-fn read_archive_cmd(file: PathBuf) {
+fn unstash_cmd(file: PathBuf) {
     archive::read(file.as_path())
         .unwrap()
         .into_iter()
@@ -159,7 +159,7 @@ fn read_archive_cmd(file: PathBuf) {
 }
 
 /// Write docs as JSON files
-fn write_archive_cmd(output_dir: &Path) {
+fn stash_cmd(output_dir: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
         .write_archive(output_dir)
