@@ -1,6 +1,5 @@
 pub use tap::pipe;
 pub mod absolutize;
-pub mod archive;
 pub mod blog;
 pub mod cli;
 pub mod config;
@@ -16,6 +15,7 @@ pub mod permalink;
 pub mod prelude;
 pub mod rss;
 pub mod sitemap;
+pub mod stash;
 pub mod stub;
 pub mod tags;
 pub mod tera;

@@ -14,8 +14,8 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<Doc>, Error> {
     return Ok(docs);
 }
 
-pub trait ArchiveDocs: Docs {
-    fn write_archive(self, path: &Path) -> Result<(), Error> {
+pub trait StashDocs: Docs {
+    fn write_stash(self, path: &Path) -> Result<(), Error> {
         let docs: Vec<Doc> = self.collect();
         let json = serde_json::to_string(&docs)?;
         write_file_deep(path, &json)?;
@@ -23,10 +23,10 @@ pub trait ArchiveDocs: Docs {
     }
 }
 
-impl<I> ArchiveDocs for I where I: Iterator<Item = Doc> {}
+impl<I> StashDocs for I where I: Iterator<Item = Doc> {}
 
-pub trait ArchiveStubs: Stubs {
-    fn write_archive(self, path: &Path) -> Result<(), Error> {
+pub trait StashStubs: Stubs {
+    fn write_stash(self, path: &Path) -> Result<(), Error> {
         let stubs: Vec<Stub> = self.collect();
         let json = serde_json::to_string(&stubs)?;
         write_file_deep(path, &json)?;
@@ -34,4 +34,4 @@ pub trait ArchiveStubs: Stubs {
     }
 }
 
-impl<I> ArchiveStubs for I where I: Iterator<Item = Stub> {}
+impl<I> StashStubs for I where I: Iterator<Item = Stub> {}

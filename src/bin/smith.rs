@@ -1,4 +1,3 @@
-use archive::ArchiveStubs;
 use clap::{Parser, Subcommand};
 use lettersmith::prelude::*;
 use std::env;
@@ -163,7 +162,7 @@ fn write_cmd(output_dir: &Path) {
 
 /// Read docs from JSON file paths
 fn unstash_cmd(file: PathBuf) {
-    archive::read(file.as_path())
+    stash::read(file.as_path())
         .unwrap()
         .into_iter()
         .write_stdio();
@@ -173,7 +172,7 @@ fn unstash_cmd(file: PathBuf) {
 fn stash_cmd(output_dir: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
-        .write_archive(output_dir)
+        .write_stash(output_dir)
         .unwrap();
 }
 
@@ -182,7 +181,7 @@ fn stubs_cmd(file: &Path) {
     docs::read_stdin()
         .panic_at_first_error()
         .stubs()
-        .write_archive(file)
+        .write_stash(file)
         .unwrap();
 }
 
