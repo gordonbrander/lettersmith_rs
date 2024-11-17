@@ -3,7 +3,6 @@ use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::json::get_deep;
 use crate::markdown::render_markdown;
-use crate::stub::Stub;
 use crate::tags::get_union_for_index_keys;
 use chrono::Utc;
 use std::collections::hash_map::DefaultHasher;
@@ -100,7 +99,7 @@ fn filter_related(
     let Some(index_value) = args.get("index") else {
         return Ok(tera::Value::Array(Vec::new()));
     };
-    let index = try_get_value!("related", "value", HashMap<String, Vec<Stub>>, index_value);
+    let index = try_get_value!("related", "value", HashMap<String, Vec<Doc>>, index_value);
     let union = get_union_for_index_keys(&index, &tags);
     let value = tera::to_value(union)?;
     return Ok(value);

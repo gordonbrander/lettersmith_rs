@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use docs::SortKey;
 use lettersmith::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -55,6 +56,19 @@ enum Commands {
         #[arg(help = "File path read stashed docs. Example: smith unstash build/posts.json")]
         #[arg(value_name = "FILE")]
         file: PathBuf,
+    },
+
+    #[command(about = "Sort docs by key")]
+    Sort {
+        #[arg(long = "key")]
+        #[arg(help = "Key to sort by")]
+        #[arg(value_name = "KEY")]
+        #[arg(default_value = "created")]
+        key: SortKey,
+
+        #[arg(long = "asc")]
+        #[arg(help = "Sort ascending?")]
+        asc: bool,
     },
 
     #[command(about = "Take up to n most recent docs")]
@@ -140,6 +154,7 @@ fn main() {
         Commands::Write { output_dir } => write_cmd(output_dir.as_path()),
         Commands::Stash { file } => stash_cmd(file.as_path()),
         Commands::Unstash { file } => unstash_cmd(file),
+        Commands::Sort { key, asc } => sort_cmd(key, asc),
         Commands::Recent { limit } => recent_cmd(limit),
         Commands::Stubs { file } => stubs_cmd(file.as_path()),
         Commands::Markdown {} => markdown_cmd(),
@@ -183,6 +198,13 @@ fn stash_cmd(output_dir: &Path) {
         .panic_at_first_error()
         .write_stash(output_dir)
         .unwrap();
+}
+
+fn sort_cmd(key: SortKey, asc: bool) {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .sorted_by(key, asc)
+        .write_stdio();
 }
 
 fn recent_cmd(limit: usize) {

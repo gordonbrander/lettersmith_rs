@@ -1,6 +1,7 @@
 use crate::doc::Doc;
 use crate::error::Error;
 use crate::io::{dump_errors_to_stderr, panic_at_first_error};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -158,6 +159,8 @@ pub fn read_stdin() -> impl DocResults {
         })
 }
 
+#[derive(clap::ValueEnum, Copy, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SortKey {
     IdPath,
     OutputPath,
@@ -166,11 +169,28 @@ pub enum SortKey {
     Title,
 }
 
-fn sorted_by<T, F>(mut v: Vec<T>, mut compare: F, asc: bool) -> Vec<T>
+impl TryFrom<String> for SortKey {
+    type Error = Error;
+    fn try_from(value: String) -> Result<Self, Error> {
+        match value.to_lowercase().as_str() {
+            "id_path" => Ok(SortKey::IdPath),
+            "output_path" => Ok(SortKey::OutputPath),
+            "created" => Ok(SortKey::Created),
+            "modified" => Ok(SortKey::Modified),
+            "title" => Ok(SortKey::Title),
+            _ => Err(Error::value(format!(
+                "String {} does not correspond to any SortKey",
+                value
+            ))),
+        }
+    }
+}
+
+fn sorted_by<T, F>(mut vec: Vec<T>, mut compare: F, asc: bool) -> Vec<T>
 where
     F: FnMut(&T, &T) -> Ordering,
 {
-    v.sort_by(|a, b| {
+    vec.sort_by(|a, b| {
         let ord = compare(a, b);
         if asc {
             ord
@@ -178,18 +198,5 @@ where
             ord.reverse()
         }
     });
-    v
-}
-
-impl SortKey {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "id_path" => Some(SortKey::IdPath),
-            "output_path" => Some(SortKey::OutputPath),
-            "created" => Some(SortKey::Created),
-            "modified" => Some(SortKey::Modified),
-            "title" => Some(SortKey::Title),
-            _ => None,
-        }
-    }
+    vec
 }

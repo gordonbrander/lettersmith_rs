@@ -23,8 +23,8 @@ pub fn to_tag(term: &str) -> String {
 /// Given an index-shaped hashmap and a list of keys, return a combined and
 /// deduplicated vector of the items for those keys.
 /// We return a vector instead of a HashSet to allow for ordering/sorting.
-pub fn get_union_for_index_keys(index: &HashMap<String, Vec<Stub>>, keys: &[String]) -> Vec<Stub> {
-    let mut stubs: Vec<Stub> = keys
+pub fn get_union_for_index_keys(index: &HashMap<String, Vec<Doc>>, keys: &[String]) -> Vec<Doc> {
+    let mut stubs: Vec<Doc> = keys
         .iter()
         .flat_map(move |key| {
             index
@@ -66,12 +66,12 @@ impl Doc {
     pub fn set_meta_related_from_tag_index(
         self,
         taxonomy_key: &str,
-        taxonomy_index: HashMap<String, Vec<Stub>>,
+        taxonomy_index: HashMap<String, Vec<Doc>>,
     ) -> Self {
         let Some(tags) = self.get_meta_tags(taxonomy_key) else {
             return self;
         };
-        let related: Vec<Stub> = get_union_for_index_keys(&taxonomy_index, &tags);
+        let related: Vec<Doc> = get_union_for_index_keys(&taxonomy_index, &tags);
         self.merge_meta(json!({
             "related": related
         }))
@@ -83,8 +83,8 @@ pub trait TaggedDocs: Docs {
     /// Looks for an array in the meta key specified.
     /// Returns a hashmap of stub lists, indexed by term.
     /// Terms are sluggified to normalize them for lookup by key.
-    fn index_by_tag(self, taxonomy_key: &str) -> HashMap<String, Vec<Stub>> {
-        let mut tax_index: HashMap<String, Vec<Stub>> = HashMap::new();
+    fn index_by_tag(self, taxonomy_key: &str) -> HashMap<String, Vec<Doc>> {
+        let mut tax_index: HashMap<String, Vec<Doc>> = HashMap::new();
         for doc in self {
             if let Some(json::Value::Array(terms)) = doc.meta.get(taxonomy_key) {
                 for term in terms {
@@ -92,7 +92,7 @@ pub trait TaggedDocs: Docs {
                         tax_index
                             .entry(to_tag(term))
                             .or_insert_with(Vec::new)
-                            .push(Stub::from(&doc));
+                            .push(doc.clone());
                     }
                 }
             }
