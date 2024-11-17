@@ -85,8 +85,8 @@ pub trait Docs: Iterator<Item = Doc> + Sized {
         let sorted = match key {
             SortKey::IdPath => sorted_by(docs, |a, b| a.id_path.cmp(&b.id_path), asc),
             SortKey::OutputPath => sorted_by(docs, |a, b| a.output_path.cmp(&b.output_path), asc),
-            SortKey::Created => sorted_by(docs, |a, b| b.created.cmp(&a.created), asc),
-            SortKey::Modified => sorted_by(docs, |a, b| b.modified.cmp(&a.modified), asc),
+            SortKey::Created => sorted_by(docs, |a, b| a.created.cmp(&b.created), asc),
+            SortKey::Modified => sorted_by(docs, |a, b| a.modified.cmp(&b.modified), asc),
             SortKey::Title => sorted_by(docs, |a, b| a.title.cmp(&b.title), asc),
         };
         sorted.into_iter()
