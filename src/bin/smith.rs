@@ -79,15 +79,6 @@ enum Commands {
         limit: usize,
     },
 
-    #[command(
-        about = "Transform docs into stubs (excerpted docs) and write to a JSON file. Typically used to generate a list of posts that can be used during templating."
-    )]
-    Stubs {
-        #[arg(help = "File path to write stubs to. Example: smith stubs posts.json")]
-        #[arg(value_name = "FILE")]
-        file: PathBuf,
-    },
-
     #[command(about = "Render templates for blog posts or pages")]
     Blog {
         #[arg(long = "permalink-template")]
@@ -156,7 +147,6 @@ fn main() {
         Commands::Unstash { file } => unstash_cmd(file),
         Commands::Sort { key, asc } => sort_cmd(key, asc),
         Commands::Recent { limit } => recent_cmd(limit),
-        Commands::Stubs { file } => stubs_cmd(file.as_path()),
         Commands::Markdown {} => markdown_cmd(),
         Commands::Blog {
             permalink_template,
@@ -212,15 +202,6 @@ fn recent_cmd(limit: usize) {
         .panic_at_first_error()
         .most_recent(limit)
         .write_stdio();
-}
-
-/// Write docs as stubs to JSON file
-fn stubs_cmd(file: &Path) {
-    docs::read_stdin()
-        .panic_at_first_error()
-        .stubs()
-        .write_stash(file)
-        .unwrap();
 }
 
 fn markdown_cmd() {

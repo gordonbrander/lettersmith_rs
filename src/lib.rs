@@ -16,7 +16,6 @@ pub mod prelude;
 pub mod rss;
 pub mod sitemap;
 pub mod stash;
-pub mod stub;
 pub mod tags;
 pub mod tera;
 pub mod text;

@@ -2,7 +2,6 @@ use crate::doc::Doc;
 use crate::docs::Docs;
 use crate::html::strip_html;
 use crate::markdown::strip_markdown;
-use crate::stub::Stub;
 use crate::text::{first_sentence, to_slug};
 use crate::token_template;
 use regex::{self, Regex};
@@ -77,20 +76,20 @@ pub fn render_wikilinks_with_template(
     text: &str,
     wikilink_template: &str,
     nolink_template: &str,
-    slug_to_stub_index: &HashMap<String, Stub>,
+    slug_to_doc_index: &HashMap<String, Doc>,
 ) -> String {
     WIKILINK
         .replace_all(&text, |caps: &regex::Captures| {
             let wikilink = parse_wikilink(&caps[0]);
-            match slug_to_stub_index.get(&wikilink.slug) {
-                Some(stub) => {
+            match slug_to_doc_index.get(&wikilink.slug) {
+                Some(doc) => {
                     let mut context: HashMap<&str, String> = HashMap::new();
                     context.insert(
                         "output_path",
-                        stub.output_path.to_string_lossy().into_owned(),
+                        doc.output_path.to_string_lossy().into_owned(),
                     );
-                    context.insert("title", stub.title.clone());
-                    context.insert("summary", stub.summary.clone());
+                    context.insert("title", doc.title.clone());
+                    context.insert("summary", doc.summary.clone());
                     context.insert("text", wikilink.text);
                     context.insert("slug", wikilink.slug);
                     token_template::render(wikilink_template, &context)
@@ -141,33 +140,33 @@ impl Doc {
         mut self,
         wikilink_template: &str,
         nolink_template: &str,
-        slug_to_stub_index: &HashMap<String, Stub>,
+        slug_to_doc_index: &HashMap<String, Doc>,
     ) -> Self {
         self.content = render_wikilinks_with_template(
             &self.content,
             wikilink_template,
             nolink_template,
-            slug_to_stub_index,
+            slug_to_doc_index,
         );
         self
     }
 
     /// Render wikilinks using a default template
-    pub fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Stub>) -> Self {
+    pub fn render_wikilinks(self, slug_to_doc_index: &HashMap<String, Doc>) -> Self {
         self.render_wikilinks_with_template(
             r#"<a class="wikilink" href="{output_path}">{text}</a>"#,
             r#"<span class="nolink>{text}</span>"#,
-            slug_to_stub_index,
+            slug_to_doc_index,
         )
     }
 }
 
 pub trait WikilinkDocs: Docs {
-    /// Create a hashmap of stubs keyed by sluggified-title.
+    /// Create a hashmap of docs keyed by sluggified-title.
     /// This hashmap can be passed to `render_wikilinks` to render wikilinks
     /// in the content.
-    fn index_by_title_slug(self) -> HashMap<String, Stub> {
-        self.map(|doc| (doc.get_title_slug(), doc.to_stub()))
+    fn index_by_title_slug(self) -> HashMap<String, Doc> {
+        self.map(|doc| (doc.get_title_slug(), doc))
             .into_iter()
             .pipe(|iter| HashMap::from_iter(iter))
     }
@@ -177,7 +176,7 @@ pub trait WikilinkDocs: Docs {
         self,
         wikilink_template: &str,
         nolink_template: &str,
-        slug_to_stub_index: &HashMap<String, Stub>,
+        slug_to_stub_index: &HashMap<String, Doc>,
     ) -> impl Docs {
         self.map(|doc| {
             doc.render_wikilinks_with_template(
@@ -189,7 +188,7 @@ pub trait WikilinkDocs: Docs {
     }
 
     /// Render wikilinks using default template
-    fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Stub>) -> impl Docs {
+    fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Doc>) -> impl Docs {
         self.map(|doc| doc.render_wikilinks(slug_to_stub_index))
     }
 }
