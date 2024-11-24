@@ -152,10 +152,10 @@ impl Doc {
     }
 
     /// Render wikilinks using a default template
-    pub fn render_wikilinks(self, slug_to_doc_index: &HashMap<String, Doc>) -> Self {
+    pub fn render_wikilinks<'a>(self, slug_to_doc_index: &'a HashMap<String, Doc>) -> Self {
         self.render_wikilinks_with_template(
             r#"<a class="wikilink" href="{output_path}">{text}</a>"#,
-            r#"<span class="nolink>{text}</span>"#,
+            r#"<span class="nolink">{text}</span>"#,
             slug_to_doc_index,
         )
     }
@@ -176,20 +176,30 @@ pub trait WikilinkDocs: Docs {
         self,
         wikilink_template: &str,
         nolink_template: &str,
-        slug_to_stub_index: &HashMap<String, Doc>,
+        slug_to_doc_index: &HashMap<String, Doc>,
     ) -> impl Docs {
         self.map(|doc| {
             doc.render_wikilinks_with_template(
                 wikilink_template,
                 nolink_template,
-                slug_to_stub_index,
+                slug_to_doc_index,
             )
         })
     }
 
     /// Render wikilinks using default template
-    fn render_wikilinks(self, slug_to_stub_index: &HashMap<String, Doc>) -> impl Docs {
-        self.map(|doc| doc.render_wikilinks(slug_to_stub_index))
+    fn render_wikilinks(self, slug_to_doc_index: &HashMap<String, Doc>) -> impl Docs {
+        self.map(|doc| doc.render_wikilinks(slug_to_doc_index))
+    }
+
+    /// Render wikilinks using a default template between the docs in this iterator.
+    /// E.g. a wikilink will match if there is a doc in this iterator that has a title who's slug
+    /// matches the sluggified wikilink.
+    fn render_wikilinks_between(self) -> impl Docs {
+        let docs: Vec<Doc> = self.collect();
+        let index = docs.clone().into_iter().index_by_title_slug();
+        let docs: Vec<Doc> = docs.into_iter().render_wikilinks(&index).collect();
+        docs.into_iter()
     }
 }
 
@@ -233,9 +243,9 @@ mod tests {
     fn test_render_wikilinks_link() {
         let text = "This is a [[wikilink]] and a [[link|Custom Text]].";
 
-        let mut slug_to_stub_index: HashMap<String, Stub> = HashMap::new();
-        slug_to_stub_index.insert("wikilink".into(), Stub::draft("wikilink.html"));
-        slug_to_stub_index.insert("link".into(), Stub::draft("custom-text.html"));
+        let mut slug_to_stub_index: HashMap<String, Doc> = HashMap::new();
+        slug_to_stub_index.insert("wikilink".into(), Doc::draft("wikilink.html"));
+        slug_to_stub_index.insert("link".into(), Doc::draft("custom-text.html"));
 
         let rendered = render_wikilinks_with_template(
             text,

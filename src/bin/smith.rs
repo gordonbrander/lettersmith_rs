@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use docs::SortKey;
 use lettersmith::prelude::*;
+use lettersmith::wikilink::WikilinkDocs;
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -58,6 +59,21 @@ enum Commands {
         file: PathBuf,
     },
 
+    #[command(about = "Render templates for blog posts or pages")]
+    Blog {
+        #[arg(long = "permalink-template")]
+        #[arg(default_value = "{parents}/{slug}/index.html")]
+        #[arg(help = "Template for rendering permalinks")]
+        permalink_template: String,
+
+        #[arg(
+            help = "JSON files to include in template context. Example: smith template --data data/*.json"
+        )]
+        #[arg(long = "data")]
+        #[arg(value_name = "FILE")]
+        data: Vec<PathBuf>,
+    },
+
     #[command(about = "Sort docs by key")]
     Sort {
         #[arg(long = "key")]
@@ -79,24 +95,6 @@ enum Commands {
         limit: usize,
     },
 
-    #[command(about = "Render templates for blog posts or pages")]
-    Blog {
-        #[arg(long = "permalink-template")]
-        #[arg(default_value = "{parents}/{slug}/index.html")]
-        #[arg(help = "Template for rendering permalinks")]
-        permalink_template: String,
-
-        #[arg(
-            help = "JSON files to include in template context. Example: smith template --data data/*.json"
-        )]
-        #[arg(long = "data")]
-        #[arg(value_name = "FILE")]
-        data: Vec<PathBuf>,
-    },
-
-    #[command(about = "Render markdown")]
-    Markdown {},
-
     #[command(about = "Set permalink via a template")]
     Permalink {
         #[arg(long = "template")]
@@ -104,6 +102,14 @@ enum Commands {
         #[arg(help = "Template for rendering permalinks")]
         permalink_template: String,
     },
+
+    #[command(about = "Render markdown")]
+    Markdown {},
+
+    #[command(
+        about = "Render wikilink markup for posts in this selection. Wikilinks will be linked to posts where the sluggified title matches the wikilink's slug."
+    )]
+    Wikilinks {},
 
     #[command(about = "Render doc with the Tera template set on doc's template_path")]
     Template {
@@ -147,12 +153,13 @@ fn main() {
         Commands::Unstash { file } => unstash_cmd(file),
         Commands::Sort { key, asc } => sort_cmd(key, asc),
         Commands::Recent { limit } => recent_cmd(limit),
+        Commands::Permalink { permalink_template } => permalink_cmd(&permalink_template),
         Commands::Markdown {} => markdown_cmd(),
+        Commands::Wikilinks {} => wikilinks_cmd(),
         Commands::Blog {
             permalink_template,
             data,
         } => blog_cmd(&permalink_template, &data, &config),
-        Commands::Permalink { permalink_template } => permalink_cmd(&permalink_template),
         Commands::Template { data } => template(&data, &config),
         Commands::Tagindex {
             output_path,
@@ -208,6 +215,13 @@ fn markdown_cmd() {
     docs::read_stdin()
         .panic_at_first_error()
         .render_markdown()
+        .write_stdio();
+}
+
+fn wikilinks_cmd() {
+    docs::read_stdin()
+        .panic_at_first_error()
+        .render_wikilinks_between()
         .write_stdio();
 }
 
