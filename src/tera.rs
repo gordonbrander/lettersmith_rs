@@ -104,13 +104,13 @@ fn filter_related(
     return Ok(value);
 }
 
-fn filter_get_deep(
+fn filter_path(
     value: &tera::Value,
     args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let path = match args.get("path") {
-        Some(path_value) => try_get_value!("get_deep", "path", String, path_value),
-        None => return Err(tera::Error::msg("get_deep requires path argument")),
+    let path = match args.get("attribute") {
+        Some(path_value) => try_get_value!("path", "attribute", String, path_value),
+        None => return Err(tera::Error::msg("requires path argument")),
     };
     let default = args.get("default").unwrap_or(&tera::Value::Null).to_owned();
     return Ok(get_deep(value, &path).unwrap_or(default));
@@ -189,9 +189,10 @@ pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
     renderer.register_filter("related", filter_related);
     renderer.register_filter("markdown", filter_markdown);
-    renderer.register_filter("get_deep", filter_get_deep);
+    renderer.register_filter("path", filter_path);
     renderer.register_filter("choose_by_hash", filter_choose_by_hash);
     renderer.register_filter("to_slug", filter_to_slug);
+    renderer.register_filter("slugify", filter_to_slug);
     renderer.register_filter("keys", filter_keys);
     renderer.register_filter("values", filter_values);
     renderer
