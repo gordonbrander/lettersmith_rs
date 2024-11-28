@@ -4,6 +4,7 @@ use crate::error::Error;
 use crate::json::get_deep;
 use crate::markdown::render_markdown;
 use crate::tags::get_union_for_index_keys;
+use crate::text;
 use chrono::Utc;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
@@ -117,6 +118,24 @@ fn filter_get_deep(
     return Ok(get_deep(value, &path).unwrap_or(default));
 }
 
+/// Tera filter to render text as slug
+/// Example:
+/// ```tera
+/// {{ "Foo bar" | to_slug }}
+/// ```
+fn filter_to_slug(
+    value: &tera::Value,
+    _: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let Some(string) = value.as_str() else {
+        return Err(tera::Error::msg(
+            "to_slug filter can only be called on strings",
+        ));
+    };
+    let slug = text::to_slug(string);
+    Ok(tera::Value::String(slug))
+}
+
 /// Deterministically choose an element in an array using the hash of a value
 /// to pick.
 fn filter_choose_by_hash(
@@ -141,6 +160,38 @@ fn filter_choose_by_hash(
     return Ok(item);
 }
 
+/// Given an object, return an array of values for that object
+pub fn filter_values(
+    value: &tera::Value,
+    _args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let object = match value.as_object() {
+        Some(object) => object,
+        None => return Err(tera::Error::msg("must be called on an object")),
+    };
+    let values: Vec<tera::Value> = object.values().cloned().collect();
+    Ok(tera::Value::Array(values))
+}
+
+/// Given an object, return an array of keys for that object
+pub fn filter_keys(
+    value: &tera::Value,
+    _args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let object = match value.as_object() {
+        Some(object) => object,
+        None => return Err(tera::Error::msg("must be called on an object")),
+    };
+    let values: Vec<tera::Value> = object
+        .keys()
+        .cloned()
+        .map(|str| tera::Value::String(str))
+        .collect();
+    Ok(tera::Value::Array(values))
+}
+
+// pub fn filter_values()
+
 /// Decorate Tera instance with Lettersmith-specific configuration
 pub fn decorate_renderer(renderer: Tera) -> Tera {
     let mut renderer = renderer;
@@ -148,6 +199,9 @@ pub fn decorate_renderer(renderer: Tera) -> Tera {
     renderer.register_filter("markdown", filter_markdown);
     renderer.register_filter("get_deep", filter_get_deep);
     renderer.register_filter("choose_by_hash", filter_choose_by_hash);
+    renderer.register_filter("to_slug", filter_to_slug);
+    renderer.register_filter("keys", filter_keys);
+    renderer.register_filter("values", filter_values);
     renderer
 }
 
