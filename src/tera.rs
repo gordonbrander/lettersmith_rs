@@ -65,11 +65,9 @@ fn filter_markdown(
     value: &tera::Value,
     _: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let Some(markdown_str) = value.as_str() else {
-        return Err(tera::Error::msg(
-            "Markdown filter can only be called on strings",
-        ));
-    };
+    let markdown_str = value.as_str().ok_or(tera::Error::msg(
+        "Markdown filter can only be called on strings",
+    ))?;
     let rendered = render_markdown(markdown_str);
     Ok(tera::Value::String(rendered))
 }
@@ -127,12 +125,10 @@ fn filter_to_slug(
     value: &tera::Value,
     _: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let Some(string) = value.as_str() else {
-        return Err(tera::Error::msg(
-            "to_slug filter can only be called on strings",
-        ));
-    };
-    let slug = text::to_slug(string);
+    let str = value
+        .as_str()
+        .ok_or(tera::Error::msg("must be called on a string"))?;
+    let slug = text::to_slug(str);
     Ok(tera::Value::String(slug))
 }
 
@@ -142,14 +138,12 @@ fn filter_choose_by_hash(
     value: &tera::Value,
     args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let vec = match value.as_array() {
-        Some(vec) => vec,
-        None => return Err(tera::Error::msg("must be called on an array")),
-    };
-    let hashable = match args.get("value") {
-        Some(hashable) => hashable,
-        None => return Err(tera::Error::msg("value argument needed")),
-    };
+    let vec = value
+        .as_array()
+        .ok_or(tera::Error::msg("must be called on an array"))?;
+    let hashable = args
+        .get("value")
+        .ok_or(tera::Error::msg("value argument needed"))?;
     let index = {
         let mut hasher = DefaultHasher::new();
         hashable.hash(&mut hasher);
@@ -165,10 +159,9 @@ pub fn filter_values(
     value: &tera::Value,
     _args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let object = match value.as_object() {
-        Some(object) => object,
-        None => return Err(tera::Error::msg("must be called on an object")),
-    };
+    let object = value
+        .as_object()
+        .ok_or(tera::Error::msg("must be called on an object"))?;
     let values: Vec<tera::Value> = object.values().cloned().collect();
     Ok(tera::Value::Array(values))
 }
@@ -178,10 +171,9 @@ pub fn filter_keys(
     value: &tera::Value,
     _args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let object = match value.as_object() {
-        Some(object) => object,
-        None => return Err(tera::Error::msg("must be called on an object")),
-    };
+    let object = value
+        .as_object()
+        .ok_or(tera::Error::msg("must be called on an object"))?;
     let values: Vec<tera::Value> = object
         .keys()
         .cloned()
