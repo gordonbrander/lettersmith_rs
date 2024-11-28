@@ -182,7 +182,25 @@ pub fn filter_keys(
     Ok(tera::Value::Array(values))
 }
 
-// pub fn filter_values()
+/// Filter docs by id_path, using a glob pattern.
+pub fn filter_filter_by_id_path(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let glob = args
+        .get("glob")
+        .ok_or(tera::Error::msg("glob argument needed"))?
+        .as_str()
+        .ok_or(tera::Error::msg("glob argument must be a string"))?;
+    let matching_docs: Vec<tera::Value> = tera::from_value(value.to_owned())
+        .unwrap_or(Vec::new())
+        .into_iter()
+        .filter_matching(glob)
+        .map(|doc| tera::to_value(doc))
+        .filter_map(|doc| doc.ok())
+        .collect();
+    Ok(tera::Value::Array(matching_docs))
+}
 
 /// Decorate Tera instance with Lettersmith-specific configuration
 pub fn decorate_renderer(renderer: Tera) -> Tera {
@@ -195,6 +213,7 @@ pub fn decorate_renderer(renderer: Tera) -> Tera {
     renderer.register_filter("slugify", filter_to_slug);
     renderer.register_filter("keys", filter_keys);
     renderer.register_filter("values", filter_values);
+    renderer.register_filter("filter_by_id_path", filter_filter_by_id_path);
     renderer
 }
 
