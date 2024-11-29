@@ -105,10 +105,35 @@ fn filter_related(
     let index: HashMap<String, Vec<Doc>> = tera::from_value(index_value.to_owned())?;
     let related: Vec<Doc> = doc
         .get_related_from_tag_index(taxonomy_key, index)
-        .sorted_by(SortKey::Created, false)
         .collect();
     let value = tera::to_value(related)?;
     return Ok(value);
+}
+
+/// Sort docs by sort key.
+/// This specialized sort filter offers an asc (ascending/descending) flag
+/// as well as the ability to key into specific doc fields and sort by their
+/// Rust, vs JSON types.
+fn filter_sort_docs(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value>,
+) -> tera::Result<tera::Value> {
+    let docs: Vec<Doc> = tera::from_value(value.to_owned())?;
+    let key = args
+        .get("key")
+        .map(|value| value.as_str())
+        .flatten()
+        .map(|str| SortKey::try_from(str).ok())
+        .flatten()
+        .unwrap_or(SortKey::Created);
+    let asc = args
+        .get("asc")
+        .map(|value| value.as_bool())
+        .flatten()
+        .unwrap_or(true);
+    let sorted: Vec<Doc> = docs.into_iter().sorted_by(key, asc).collect();
+    let value = tera::to_value(sorted)?;
+    Ok(value)
 }
 
 fn filter_path(
@@ -221,6 +246,7 @@ pub fn decorate_renderer(renderer: Tera) -> Tera {
     renderer.register_filter("keys", filter_keys);
     renderer.register_filter("values", filter_values);
     renderer.register_filter("filter_by_id_path", filter_filter_by_id_path);
+    renderer.register_filter("sort_docs", filter_sort_docs);
     renderer
 }
 
