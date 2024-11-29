@@ -53,6 +53,7 @@ impl Doc {
         let path_ref = id_path.as_ref();
         Doc {
             id_path: path_ref.to_path_buf(),
+            output_path: path_ref.to_path_buf(),
             ..Default::default()
         }
     }
@@ -246,5 +247,108 @@ impl Doc {
             self.template_path = Some(PathBuf::from(template_path));
         }
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_new() {
+        let doc = Doc::new(
+            "test.md".into(),
+            "test.html".into(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+            "Test Title".into(),
+            "Test Summary".into(),
+            "Test Content".into(),
+            json!(null),
+        );
+
+        assert_eq!(doc.title, "Test Title");
+        assert_eq!(doc.summary, "Test Summary");
+        assert_eq!(doc.content, "Test Content");
+    }
+
+    #[test]
+    fn test_draft() {
+        let doc = Doc::draft("test.md");
+        assert_eq!(doc.id_path, PathBuf::from("test.md"));
+        assert_eq!(doc.output_path, PathBuf::from("test.md"));
+        assert!(doc.input_path.is_none());
+        assert!(doc.template_path.is_none());
+    }
+
+    #[test]
+    fn test_write() -> Result<(), Error> {
+        let dir = tempdir()?;
+        let doc = Doc::new(
+            "test.md".into(),
+            "test.html".into(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+            "Test".into(),
+            "Summary".into(),
+            "Content".into(),
+            json!(null),
+        );
+
+        let path = doc.write(&dir)?;
+        assert!(path.exists());
+        assert_eq!(fs::read_to_string(path)?, "Content");
+        Ok(())
+    }
+
+    #[test]
+    fn test_title_slug() {
+        let doc = Doc::draft("test.md").set_title("My Test Title");
+        assert_eq!(doc.get_title_slug(), "my-test-title");
+    }
+
+    #[test]
+    fn test_auto_template() {
+        let doc = Doc::draft("posts/test.md").auto_template();
+        assert_eq!(doc.template_path, Some(PathBuf::from("posts.html")));
+
+        let doc = Doc::draft("test.md").auto_template();
+        assert_eq!(doc.template_path, Some(PathBuf::from("default.html")));
+    }
+
+    #[test]
+    fn test_uplift_meta() {
+        let meta = json!({
+            "title": "Meta Title",
+            "summary": "Meta Summary",
+            "permalink": "meta.html",
+            "template": "meta.html"
+        });
+
+        let doc = Doc::draft("test.md").set_meta(meta).uplift_meta();
+
+        assert_eq!(doc.title, "Meta Title");
+        assert_eq!(doc.summary, "Meta Summary");
+        assert_eq!(doc.output_path, PathBuf::from("meta.html"));
+        assert_eq!(doc.template_path, Some(PathBuf::from("meta.html")));
+    }
+
+    #[test]
+    fn test_merge_meta() {
+        let initial = json!({"a": 1, "b": {"c": 2}});
+        let patch = json!({"b": {"d": 3}});
+
+        let doc = Doc::draft("test.md").set_meta(initial).merge_meta(patch);
+
+        assert_eq!(doc.meta.get("a").unwrap(), 1);
+        assert_eq!(doc.meta.get("b").unwrap().get("c").unwrap(), 2);
+        assert_eq!(doc.meta.get("b").unwrap().get("d").unwrap(), 3);
     }
 }

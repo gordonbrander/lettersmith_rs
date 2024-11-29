@@ -159,7 +159,7 @@ pub fn read_stdin() -> impl DocResults {
         })
 }
 
-#[derive(clap::ValueEnum, Copy, Clone, Serialize, Deserialize)]
+#[derive(clap::ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SortKey {
     IdPath,
@@ -169,10 +169,22 @@ pub enum SortKey {
     Title,
 }
 
-impl TryFrom<String> for SortKey {
+impl From<SortKey> for &str {
+    fn from(value: SortKey) -> Self {
+        match value {
+            SortKey::IdPath => "id_path",
+            SortKey::Created => "created",
+            SortKey::Modified => "modified",
+            SortKey::OutputPath => "output_path",
+            SortKey::Title => "title",
+        }
+    }
+}
+
+impl TryFrom<&str> for SortKey {
     type Error = Error;
-    fn try_from(value: String) -> Result<Self, Error> {
-        match value.to_lowercase().as_str() {
+    fn try_from(value: &str) -> Result<Self, Error> {
+        match value {
             "id_path" => Ok(SortKey::IdPath),
             "output_path" => Ok(SortKey::OutputPath),
             "created" => Ok(SortKey::Created),
@@ -199,4 +211,122 @@ where
         }
     });
     vec
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_doc(id: &str, title: &str) -> Doc {
+        Doc::draft(id).set_title(title)
+    }
+
+    #[test]
+    fn test_remove_with_id_path() {
+        let docs = vec![
+            make_test_doc("doc1.md", "Doc 1"),
+            make_test_doc("doc2.md", "Doc 2"),
+        ];
+
+        let filtered: Vec<_> = docs.into_iter().remove_with_id_path("doc1.md").collect();
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id_path, PathBuf::from("doc2.md"));
+    }
+
+    #[test]
+    fn test_filter_matching() {
+        let docs = vec![
+            make_test_doc("posts/doc1.md", "Doc 1"),
+            make_test_doc("pages/doc2.md", "Doc 2"),
+        ];
+
+        let filtered: Vec<_> = docs.into_iter().filter_matching("posts/*").collect();
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id_path, PathBuf::from("posts/doc1.md"));
+    }
+
+    #[test]
+    fn test_remove_drafts() {
+        let docs = vec![
+            make_test_doc("doc1.md", "Doc 1"),
+            make_test_doc("_draft.md", "Draft"),
+        ];
+
+        let filtered: Vec<_> = docs.into_iter().remove_drafts().collect();
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id_path, PathBuf::from("doc1.md"));
+    }
+
+    #[test]
+    fn test_remove_index() {
+        let docs = vec![
+            make_test_doc("doc1.md", "Doc 1"),
+            make_test_doc("index.md", "Index"),
+        ];
+
+        let filtered: Vec<_> = docs.into_iter().remove_index().collect();
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id_path, PathBuf::from("doc1.md"));
+    }
+
+    #[test]
+    fn test_dedupe() {
+        let docs = vec![
+            make_test_doc("doc1.md", "Doc 1"),
+            make_test_doc("doc1.md", "Doc 1 Dupe"),
+        ];
+
+        let deduped: Vec<_> = docs.into_iter().dedupe().collect();
+
+        assert_eq!(deduped.len(), 1);
+        assert_eq!(deduped[0].id_path, PathBuf::from("doc1.md"));
+    }
+
+    #[test]
+    fn test_sorted_by() {
+        let docs = vec![
+            make_test_doc("doc2.md", "B Doc"),
+            make_test_doc("doc1.md", "A Doc"),
+        ];
+
+        let sorted: Vec<_> = docs.into_iter().sorted_by(SortKey::Title, true).collect();
+
+        assert_eq!(sorted[0].title, "A Doc");
+        assert_eq!(sorted[1].title, "B Doc");
+    }
+
+    #[test]
+    fn test_sort_key_from_string() {
+        assert_eq!(SortKey::try_from("title").unwrap(), SortKey::Title);
+        assert_eq!(SortKey::try_from("id_path").unwrap(), SortKey::IdPath);
+        assert_eq!(
+            SortKey::try_from("output_path").unwrap(),
+            SortKey::OutputPath
+        );
+        assert_eq!(SortKey::try_from("created").unwrap(), SortKey::Created);
+        assert_eq!(SortKey::try_from("modified").unwrap(), SortKey::Modified);
+        assert!(SortKey::try_from("invalid").is_err());
+    }
+
+    #[test]
+    fn test_sort_key_into_string() {
+        assert_eq!(<&str>::from(SortKey::Title), "title");
+        assert_eq!(<&str>::from(SortKey::IdPath), "id_path");
+        assert_eq!(<&str>::from(SortKey::OutputPath), "output_path");
+        assert_eq!(<&str>::from(SortKey::Created), "created");
+        assert_eq!(<&str>::from(SortKey::Modified), "modified");
+    }
+
+    #[test]
+    fn test_set_extension() {
+        let docs = vec![make_test_doc("doc1.md", "Doc 1")];
+
+        let modified: Vec<_> = docs.into_iter().set_extension("html").collect();
+
+        eprint!("!!! {:?}", modified[0].output_path);
+        assert_eq!(modified[0].output_path.extension().unwrap(), "html");
+    }
 }
