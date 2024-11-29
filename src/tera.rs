@@ -1,5 +1,5 @@
 use crate::doc::Doc;
-use crate::docs::{DocResults, Docs};
+use crate::docs::{DocResults, Docs, SortKey};
 use crate::error::Error;
 use crate::json::get_deep;
 use crate::markdown::render_markdown;
@@ -103,7 +103,10 @@ fn filter_related(
         return Ok(tera::Value::Array(Vec::new()));
     };
     let index: HashMap<String, Vec<Doc>> = tera::from_value(index_value.to_owned())?;
-    let related = doc.get_related_from_tag_index(taxonomy_key, index);
+    let related: Vec<Doc> = doc
+        .get_related_from_tag_index(taxonomy_key, index)
+        .sorted_by(SortKey::Created, false)
+        .collect();
     let value = tera::to_value(related)?;
     return Ok(value);
 }

@@ -22,19 +22,19 @@ pub fn to_tag(term: &str) -> String {
 /// Given an index-shaped hashmap and a list of keys, return a combined and
 /// deduplicated vector of the items for those keys.
 /// We return a vector instead of a HashSet to allow for ordering/sorting.
-pub fn get_union_for_index_keys(index: &HashMap<String, Vec<Doc>>, keys: &[String]) -> Vec<Doc> {
-    let mut stubs: Vec<Doc> = keys
-        .iter()
-        .flat_map(move |key| {
-            index
-                .get(key)
-                .into_iter()
-                .flatten()
-                .map(|item| item.to_owned())
-        })
-        .collect();
-    stubs.dedup();
-    stubs
+pub fn get_union_for_index_keys(
+    index: &HashMap<String, Vec<Doc>>,
+    keys: &[String],
+) -> HashMap<PathBuf, Doc> {
+    let mut union: HashMap<PathBuf, Doc> = HashMap::new();
+    for key in keys {
+        if let Some(docs) = index.get(key) {
+            for doc in docs {
+                union.insert(doc.id_path.clone(), doc.to_owned());
+            }
+        }
+    }
+    union
 }
 
 impl Doc {
@@ -56,14 +56,16 @@ impl Doc {
     }
 
     /// Given an index, check the taxonomy keys in meta, pluck the related docs
-    /// and set them on the "related" field of meta.
+    /// and return them as a set.
     pub fn get_related_from_tag_index(
         self,
         taxonomy_key: &str,
         taxonomy_index: HashMap<String, Vec<Doc>>,
-    ) -> Vec<Doc> {
+    ) -> impl Docs {
         let tags = self.get_meta_tags(taxonomy_key);
-        get_union_for_index_keys(&taxonomy_index, &tags)
+        let mut union = get_union_for_index_keys(&taxonomy_index, &tags);
+        union.remove(&self.id_path);
+        union.into_values()
     }
 }
 
