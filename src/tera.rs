@@ -3,7 +3,6 @@ use crate::docs::{DocResults, Docs};
 use crate::error::Error;
 use crate::json::get_deep;
 use crate::markdown::render_markdown;
-use crate::tags::get_union_for_index_keys;
 use crate::text;
 use chrono::Utc;
 use std::collections::hash_map::DefaultHasher;
@@ -88,19 +87,24 @@ fn filter_markdown(
 /// # Example
 ///
 /// ```tera
-/// {{ data.tags | related(tags=doc.meta.tags) }}
+/// {{ doc | related(index=data.tags) }}
 /// ```
 fn filter_related(
     value: &tera::Value,
     args: &HashMap<String, tera::Value>,
 ) -> tera::Result<tera::Value> {
-    let tags: Vec<String> = tera::from_value(value.to_owned()).unwrap_or(Vec::new());
+    let doc: Doc = tera::from_value(value.to_owned())?;
+    let taxonomy_key = args
+        .get("key")
+        .map(|value| value.as_str())
+        .flatten()
+        .unwrap_or("tags");
     let Some(index_value) = args.get("index") else {
         return Ok(tera::Value::Array(Vec::new()));
     };
-    let index = try_get_value!("related", "value", HashMap<String, Vec<Doc>>, index_value);
-    let union = get_union_for_index_keys(&index, &tags);
-    let value = tera::to_value(union)?;
+    let index: HashMap<String, Vec<Doc>> = tera::from_value(index_value.to_owned())?;
+    let related = doc.get_related_from_tag_index(taxonomy_key, index);
+    let value = tera::to_value(related)?;
     return Ok(value);
 }
 
